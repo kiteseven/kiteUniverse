@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.UserMapper">
+
+    <!-- Maps the account table columns to the User entity. -->
+    <resultMap id="UserResultMap" type="org.kiteseven.kiteuniverse.pojo.entity.User">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="password" property="password"/>
+        <result column="nickname" property="nickname"/>
+        <result column="email" property="email"/>
+        <result column="phone" property="phone"/>
+        <result column="avatar" property="avatar"/>
+        <result column="gender" property="gender"/>
+        <result column="status" property="status"/>
+        <result column="last_login_time" property="lastLoginTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- Shared column list used by account queries. -->
+    <sql id="BaseColumns">
+        id, username, password, nickname, email, phone, avatar, gender, status,
+        last_login_time, create_time, update_time
+    </sql>
+
+    <!-- Loads an account by user id. -->
+    <select id="selectById" resultMap="UserResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM user_account
+        WHERE id = #{id}
+    </select>
+
+    <!-- Loads an account by username. -->
+    <select id="selectByUsername" resultMap="UserResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM user_account
+        WHERE username = #{username}
+    </select>
+
+    <!-- Loads an account by email. -->
+    <select id="selectByEmail" resultMap="UserResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM user_account
+        WHERE email = #{email}
+    </select>
+
+    <!-- Loads an account by phone number. -->
+    <select id="selectByPhone" resultMap="UserResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM user_account
+        WHERE phone = #{phone}
+    </select>
+
+    <!-- Counts all registered user accounts. -->
+    <select id="countAll" resultType="long">
+        SELECT COUNT(1)
+        FROM user_account
+    </select>
+
+    <!-- Counts newly created user accounts since the given time. -->
+    <select id="countCreatedSince" resultType="long">
+        SELECT COUNT(1)
+        FROM user_account
+        WHERE create_time &gt;= #{createdSince}
+    </select>
+
+    <!-- Counts users who logged in since the given time. -->
+    <select id="countLastLoginSince" resultType="long">
+        SELECT COUNT(1)
+        FROM user_account
+        WHERE last_login_time IS NOT NULL
+          AND last_login_time &gt;= #{lastLoginSince}
+    </select>
+
+    <!-- Inserts a new account record. -->
+    <insert id="insert" parameterType="org.kiteseven.kiteuniverse.pojo.entity.User"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_account (
+            username, password, nickname, email, phone, avatar, gender, status, last_login_time
+        ) VALUES (
+            #{username}, #{password}, #{nickname}, #{email}, #{phone}, #{avatar}, #{gender}, #{status}, #{lastLoginTime}
+        )
+    </insert>
+
+    <!-- Updates visible account profile fields. -->
+    <update id="updateProfileById" parameterType="org.kiteseven.kiteuniverse.pojo.entity.User">
+        UPDATE user_account
+        SET
+            nickname = #{nickname},
+            avatar = #{avatar},
+            gender = #{gender},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- Updates the last login time after successful authentication. -->
+    <update id="updateLastLoginTimeById">
+        UPDATE user_account
+        SET
+            last_login_time = #{lastLoginTime},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+</mapper>

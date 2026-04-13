@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.UserSmsCodeMapper">
+
+    <!-- Maps the verification code table to the Java entity. -->
+    <resultMap id="UserSmsCodeResultMap" type="org.kiteseven.kiteuniverse.pojo.entity.UserSmsCode">
+        <id column="id" property="id"/>
+        <result column="phone" property="phone"/>
+        <result column="biz_type" property="bizType"/>
+        <result column="code" property="code"/>
+        <result column="status" property="status"/>
+        <result column="expires_at" property="expiresAt"/>
+        <result column="used_at" property="usedAt"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- Shared column list used by all verification code queries. -->
+    <sql id="BaseColumns">
+        id, phone, biz_type, code, status, expires_at, used_at, create_time, update_time
+    </sql>
+
+    <!-- Inserts a new verification code record. -->
+    <insert id="insert" parameterType="org.kiteseven.kiteuniverse.pojo.entity.UserSmsCode"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_sms_code (
+            phone, biz_type, code, status, expires_at, used_at
+        ) VALUES (
+            #{phone}, #{bizType}, #{code}, #{status}, #{expiresAt}, #{usedAt}
+        )
+    </insert>
+
+    <!-- Loads the latest unused verification code under the specified phone and scene. -->
+    <select id="selectLatestUnused" resultMap="UserSmsCodeResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM user_sms_code
+        WHERE phone = #{phone}
+          AND biz_type = #{bizType}
+          AND status = 0
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <!-- Counts verification codes created since the given time. -->
+    <select id="countCreatedSince" resultType="long">
+        SELECT COUNT(1)
+        FROM user_sms_code
+        WHERE create_time &gt;= #{createdSince}
+    </select>
+
+    <!-- Counts verification codes consumed since the given time. -->
+    <select id="countUsedSince" resultType="long">
+        SELECT COUNT(1)
+        FROM user_sms_code
+        WHERE used_at IS NOT NULL
+          AND used_at &gt;= #{usedSince}
+    </select>
+
+    <!-- Updates the status of a verification code after validation. -->
+    <update id="updateStatus">
+        UPDATE user_sms_code
+        SET
+            status = #{status},
+            used_at = #{usedAt},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+</mapper>

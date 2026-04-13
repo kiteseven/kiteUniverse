@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.UserInfoMapper">
+
+    <!-- 用户资料结果映射 -->
+    <resultMap id="UserInfoResultMap" type="org.kiteseven.kiteuniverse.pojo.entity.UserInfo">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="real_name" property="realName"/>
+        <result column="birthday" property="birthday"/>
+        <result column="signature" property="signature"/>
+        <result column="profile" property="profile"/>
+        <result column="country" property="country"/>
+        <result column="province" property="province"/>
+        <result column="city" property="city"/>
+        <result column="website" property="website"/>
+        <result column="background_image" property="backgroundImage"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 用户资料基础字段 -->
+    <sql id="BaseColumns">
+        id, user_id, real_name, birthday, signature, profile, country,
+        province, city, website, background_image, create_time, update_time
+    </sql>
+
+    <!-- 根据用户ID查询资料 -->
+    <select id="selectByUserId" resultMap="UserInfoResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM user_info
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 新增用户资料 -->
+    <insert id="insert" parameterType="org.kiteseven.kiteuniverse.pojo.entity.UserInfo"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_info (
+            user_id, real_name, birthday, signature, profile, country,
+            province, city, website, background_image
+        ) VALUES (
+            #{userId}, #{realName}, #{birthday}, #{signature}, #{profile}, #{country},
+            #{province}, #{city}, #{website}, #{backgroundImage}
+        )
+    </insert>
+
+    <!-- 根据用户ID更新资料 -->
+    <update id="updateByUserId" parameterType="org.kiteseven.kiteuniverse.pojo.entity.UserInfo">
+        UPDATE user_info
+        SET
+            real_name = #{realName},
+            birthday = #{birthday},
+            signature = #{signature},
+            profile = #{profile},
+            country = #{country},
+            province = #{province},
+            city = #{city},
+            website = #{website},
+            background_image = #{backgroundImage},
+            update_time = CURRENT_TIMESTAMP
+        WHERE user_id = #{userId}
+    </update>
+
+</mapper>

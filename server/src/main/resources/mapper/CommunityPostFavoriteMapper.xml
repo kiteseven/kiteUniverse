@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.CommunityPostFavoriteMapper">
+
+    <!-- 查询指定帖子与用户的收藏状态。 -->
+    <select id="selectStatus" resultType="int">
+        SELECT status
+        FROM community_post_favorite
+        WHERE post_id = #{postId}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <!-- 新增收藏关系。 -->
+    <insert id="insert" parameterType="org.kiteseven.kiteuniverse.pojo.entity.CommunityPostFavorite"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO community_post_favorite (
+            post_id, user_id, status
+        ) VALUES (
+            #{postId}, #{userId}, #{status}
+        )
+    </insert>
+
+    <!-- 激活已有收藏关系。 -->
+    <update id="activate">
+        UPDATE community_post_favorite
+        SET
+            status = 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE post_id = #{postId}
+          AND user_id = #{userId}
+          AND status = 0
+    </update>
+
+    <!-- 取消已有收藏关系。 -->
+    <update id="deactivate">
+        UPDATE community_post_favorite
+        SET
+            status = 0,
+            update_time = CURRENT_TIMESTAMP
+        WHERE post_id = #{postId}
+          AND user_id = #{userId}
+          AND status = 1
+    </update>
+
+</mapper>

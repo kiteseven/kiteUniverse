@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.CommunityCommentMapper">
+
+    <!-- 统计评论总数。 -->
+    <select id="countAll" resultType="long">
+        SELECT COUNT(1)
+        FROM community_comment
+    </select>
+
+    <!-- 查询帖子评论列表。 -->
+    <select id="selectByPostId" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostCommentVO">
+        SELECT
+            c.id,
+            c.post_id AS postId,
+            c.author_id AS authorId,
+            COALESCE(NULLIF(u.nickname, ''), NULLIF(u.username, ''), '社区成员') AS authorName,
+            u.avatar AS authorAvatar,
+            c.content,
+            c.create_time AS createTime
+        FROM community_comment c
+                 LEFT JOIN user_account u ON u.id = c.author_id
+        WHERE c.post_id = #{postId}
+          AND c.status = 1
+        ORDER BY c.id ASC
+    </select>
+
+    <!-- 新增评论记录。 -->
+    <insert id="insert" parameterType="org.kiteseven.kiteuniverse.pojo.entity.CommunityComment"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO community_comment (
+            post_id, author_id, content, status
+        ) VALUES (
+            #{postId}, #{authorId}, #{content}, #{status}
+        )
+    </insert>
+
+</mapper>

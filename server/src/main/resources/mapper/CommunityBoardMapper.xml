@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.CommunityBoardMapper">
+
+    <!-- 版块实体与表字段映射。 -->
+    <resultMap id="CommunityBoardResultMap" type="org.kiteseven.kiteuniverse.pojo.entity.CommunityBoard">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="slug" property="slug"/>
+        <result column="tag_name" property="tagName"/>
+        <result column="description" property="description"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 版块基础字段列表。 -->
+    <sql id="BaseColumns">
+        id, name, slug, tag_name, description, sort_order, status, create_time, update_time
+    </sql>
+
+    <!-- 统计版块总数。 -->
+    <select id="countAll" resultType="long">
+        SELECT COUNT(1)
+        FROM community_board
+    </select>
+
+    <!-- 按别名查询版块。 -->
+    <select id="selectBySlug" resultMap="CommunityBoardResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM community_board
+        WHERE slug = #{slug}
+        LIMIT 1
+    </select>
+
+    <!-- 按编号查询版块。 -->
+    <select id="selectById" resultMap="CommunityBoardResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM community_board
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <!-- 查询所有启用版块。 -->
+    <select id="selectActiveBoards" resultMap="CommunityBoardResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM community_board
+        WHERE status = 1
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <!-- 查询版块概要与帖子统计。 -->
+    <select id="selectActiveBoardSummaries" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.BoardSummaryVO">
+        SELECT
+            b.id,
+            b.name,
+            b.slug,
+            b.tag_name AS tagName,
+            b.description,
+            (
+                SELECT COUNT(1)
+                FROM community_post p
+                WHERE p.board_id = b.id
+                  AND p.status = 1
+            ) AS topicCount,
+            (
+                SELECT COUNT(1)
+                FROM community_post p
+                WHERE p.board_id = b.id
+                  AND p.status = 1
+                  AND p.published_at &gt;= #{todayStart}
+            ) AS todayPostCount,
+            COALESCE((
+                SELECT p.title
+                FROM community_post p
+                WHERE p.board_id = b.id
+                  AND p.status = 1
+                ORDER BY p.is_pinned DESC, p.published_at DESC, p.id DESC
+                LIMIT 1
+            ), '暂无帖子') AS latestPostTitle,
+            (
+                SELECT p.published_at
+                FROM community_post p
+                WHERE p.board_id = b.id
+                  AND p.status = 1
+                ORDER BY p.is_pinned DESC, p.published_at DESC, p.id DESC
+                LIMIT 1
+            ) AS latestPublishedAt
+        FROM community_board b
+        WHERE b.status = 1
+        ORDER BY b.sort_order ASC, b.id ASC
+    </select>
+
+    <!-- 按编号查询版块概要。 -->
+    <select id="selectBoardSummaryById" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.BoardSummaryVO">
+        SELECT
+            b.id,
+            b.name,
+            b.slug,
+            b.tag_name AS tagName,
+            b.description,
+            (
+                SELECT COUNT(1)
+                FROM community_post p
+                WHERE p.board_id = b.id
+                  AND p.status = 1
+            ) AS topicCount,
+            (
+                SELECT COUNT(1)
+                FROM community_post p
+                WHERE p.board_id = b.id
+                  AND p.status = 1
+                  AND p.published_at &gt;= #{todayStart}
+            ) AS todayPostCount,
+            COALESCE((
+                SELECT p.title
+                FROM community_post p
+                WHERE p.board_id = b.id
+                  AND p.status = 1
+                ORDER BY p.is_pinned DESC, p.published_at DESC, p.id DESC
+                LIMIT 1
+            ), '暂无帖子') AS latestPostTitle,
+            (
+                SELECT p.published_at
+                FROM community_post p
+                WHERE p.board_id = b.id
+                  AND p.status = 1
+                ORDER BY p.is_pinned DESC, p.published_at DESC, p.id DESC
+                LIMIT 1
+            ) AS latestPublishedAt
+        FROM community_board b
+        WHERE b.id = #{id}
+          AND b.status = 1
+        LIMIT 1
+    </select>
+
+    <!-- 新增版块记录。 -->
+    <insert id="insert" parameterType="org.kiteseven.kiteuniverse.pojo.entity.CommunityBoard"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO community_board (
+            name, slug, tag_name, description, sort_order, status
+        ) VALUES (
+            #{name}, #{slug}, #{tagName}, #{description}, #{sortOrder}, #{status}
+        )
+    </insert>
+
+</mapper>

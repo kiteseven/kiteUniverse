@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.CommunityPostMapper">
+
+    <!-- 帖子实体与表字段映射。 -->
+    <resultMap id="CommunityPostResultMap" type="org.kiteseven.kiteuniverse.pojo.entity.CommunityPost">
+        <id column="id" property="id"/>
+        <result column="board_id" property="boardId"/>
+        <result column="author_id" property="authorId"/>
+        <result column="title" property="title"/>
+        <result column="summary" property="summary"/>
+        <result column="content" property="content"/>
+        <result column="badge" property="badge"/>
+        <result column="status" property="status"/>
+        <result column="is_featured" property="featured"/>
+        <result column="is_pinned" property="pinned"/>
+        <result column="view_count" property="viewCount"/>
+        <result column="comment_count" property="commentCount"/>
+        <result column="favorite_count" property="favoriteCount"/>
+        <result column="published_at" property="publishedAt"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 帖子概要查询的公共字段。 -->
+    <sql id="SummaryColumns">
+        p.id,
+        p.board_id AS boardId,
+        b.name AS boardName,
+        b.slug AS boardSlug,
+        b.tag_name AS boardTagName,
+        COALESCE(NULLIF(u.nickname, ''), NULLIF(u.username, ''), '社区编辑部') AS authorName,
+        COALESCE(NULLIF(p.badge, ''), b.tag_name) AS badge,
+        p.title,
+        p.summary,
+        p.view_count AS viewCount,
+        p.comment_count AS commentCount,
+        p.favorite_count AS favoriteCount,
+        p.published_at AS publishedAt
+    </sql>
+
+    <!-- 帖子详情查询的公共字段。 -->
+    <sql id="DetailColumns">
+        p.id,
+        p.board_id AS boardId,
+        b.name AS boardName,
+        b.slug AS boardSlug,
+        b.tag_name AS boardTagName,
+        p.author_id AS authorId,
+        COALESCE(NULLIF(u.nickname, ''), NULLIF(u.username, ''), '社区编辑部') AS authorName,
+        u.avatar AS authorAvatar,
+        COALESCE(NULLIF(p.badge, ''), b.tag_name) AS badge,
+        p.title,
+        p.summary,
+        p.content,
+        p.view_count AS viewCount,
+        p.comment_count AS commentCount,
+        p.favorite_count AS favoriteCount,
+        p.published_at AS publishedAt,
+        p.create_time AS createTime,
+        p.update_time AS updateTime
+    </sql>
+
+    <!-- 统计帖子总数。 -->
+    <select id="countAll" resultType="long">
+        SELECT COUNT(1)
+        FROM community_post
+    </select>
+
+    <!-- 统计已发布帖子数。 -->
+    <select id="countPublished" resultType="long">
+        SELECT COUNT(1)
+        FROM community_post
+        WHERE status = 1
+    </select>
+
+    <!-- 统计指定时间后的已发布帖子数。 -->
+    <select id="countPublishedSince" resultType="long">
+        SELECT COUNT(1)
+        FROM community_post
+        WHERE status = 1
+          AND published_at &gt;= #{publishedSince}
+    </select>
+
+    <!-- 按编号查询帖子实体。 -->
+    <select id="selectById" resultMap="CommunityPostResultMap">
+        SELECT
+            id,
+            board_id,
+            author_id,
+            title,
+            summary,
+            content,
+            badge,
+            status,
+            is_featured,
+            is_pinned,
+            view_count,
+            comment_count,
+            favorite_count,
+            published_at,
+            create_time,
+            update_time
+        FROM community_post
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <!-- 按编号查询帖子详情。 -->
+    <select id="selectDetailById" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostDetailVO">
+        SELECT <include refid="DetailColumns"/>
+        FROM community_post p
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE p.id = #{id}
+          AND p.status = 1
+        LIMIT 1
+    </select>
+
+    <!-- 查询首页精选帖子。 -->
+    <select id="selectFeaturedPosts" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostSummaryVO">
+        SELECT <include refid="SummaryColumns"/>
+        FROM community_post p
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE p.status = 1
+          AND p.is_featured = 1
+        ORDER BY p.is_pinned DESC, p.published_at DESC, p.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询最新帖子。 -->
+    <select id="selectLatestPosts" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostSummaryVO">
+        SELECT <include refid="SummaryColumns"/>
+        FROM community_post p
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE p.status = 1
+        ORDER BY p.is_pinned DESC, p.published_at DESC, p.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询指定版块下的帖子。 -->
+    <select id="selectPostsByBoardId" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostSummaryVO">
+        SELECT <include refid="SummaryColumns"/>
+        FROM community_post p
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE p.status = 1
+          AND p.board_id = #{boardId}
+        ORDER BY p.is_pinned DESC, p.published_at DESC, p.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询指定作者发布的帖子。 -->
+    <select id="selectPostsByAuthorId" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostSummaryVO">
+        SELECT <include refid="SummaryColumns"/>
+        FROM community_post p
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE p.status = 1
+          AND p.author_id = #{authorId}
+        ORDER BY p.is_pinned DESC, p.published_at DESC, p.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询指定用户收藏的帖子。 -->
+    <select id="selectFavoritePostsByUserId" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostSummaryVO">
+        SELECT <include refid="SummaryColumns"/>
+        FROM community_post_favorite f
+                 INNER JOIN community_post p ON p.id = f.post_id
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE f.user_id = #{userId}
+          AND f.status = 1
+          AND p.status = 1
+        ORDER BY f.update_time DESC, f.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 新增帖子记录。 -->
+    <insert id="insert" parameterType="org.kiteseven.kiteuniverse.pojo.entity.CommunityPost"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO community_post (
+            board_id, author_id, title, summary, content, badge, status,
+            is_featured, is_pinned, view_count, comment_count, favorite_count, published_at
+        ) VALUES (
+            #{boardId}, #{authorId}, #{title}, #{summary}, #{content}, #{badge}, #{status},
+            #{featured}, #{pinned}, #{viewCount}, #{commentCount}, #{favoriteCount}, #{publishedAt}
+        )
+    </insert>
+
+    <!-- 更新帖子主体内容。 -->
+    <update id="updatePost" parameterType="org.kiteseven.kiteuniverse.pojo.entity.CommunityPost">
+        UPDATE community_post
+        SET
+            board_id = #{boardId},
+            title = #{title},
+            summary = #{summary},
+            content = #{content},
+            badge = #{badge},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND author_id = #{authorId}
+          AND status = 1
+    </update>
+
+    <!-- 软删除指定作者名下的帖子。 -->
+    <update id="softDeleteByIdAndAuthorId">
+        UPDATE community_post
+        SET
+            status = 0,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND author_id = #{authorId}
+          AND status = 1
+    </update>
+
+    <!-- 增加帖子浏览量。 -->
+    <update id="incrementViewCount">
+        UPDATE community_post
+        SET
+            view_count = view_count + 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- 增加帖子评论数。 -->
+    <update id="incrementCommentCount">
+        UPDATE community_post
+        SET
+            comment_count = comment_count + 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- 增加帖子收藏数。 -->
+    <update id="incrementFavoriteCount">
+        UPDATE community_post
+        SET
+            favorite_count = favorite_count + 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND status = 1
+    </update>
+
+    <!-- 减少帖子收藏数。 -->
+    <update id="decrementFavoriteCount">
+        UPDATE community_post
+        SET
+            favorite_count = CASE WHEN favorite_count &gt; 0 THEN favorite_count - 1 ELSE 0 END,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND status = 1
+    </update>
+
+    <!-- 查询热门帖子（按浏览×1 + 评论×5 + 收藏×3 综合热度降序排列）。 -->
+    <select id="selectHotPosts" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostSummaryVO">
+        SELECT <include refid="SummaryColumns"/>
+        FROM community_post p
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE p.status = 1
+          AND p.published_at &gt;= #{publishedSince}
+        ORDER BY (p.view_count * 1 + p.comment_count * 5 + p.favorite_count * 3) DESC,
+                 p.published_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 按关键字搜索帖子（匹配标题、摘要、徽标）。 -->
+    <select id="searchPosts" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostSummaryVO">
+        SELECT <include refid="SummaryColumns"/>
+        FROM community_post p
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE p.status = 1
+          AND (p.title LIKE CONCAT('%', #{keyword}, '%')
+            OR p.summary LIKE CONCAT('%', #{keyword}, '%')
+            OR p.badge LIKE CONCAT('%', #{keyword}, '%'))
+        ORDER BY p.is_pinned DESC, p.published_at DESC, p.id DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS community_post (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '帖子主键',
+    board_id BIGINT NOT NULL COMMENT '所属版块编号',
+    author_id BIGINT NULL COMMENT '作者编号',
+    title VARCHAR(120) NOT NULL COMMENT '帖子标题',
+    summary VARCHAR(255) NOT NULL COMMENT '帖子摘要',
+    content TEXT NOT NULL COMMENT '帖子正文',
+    badge VARCHAR(32) NULL COMMENT '帖子徽标',
+    status TINYINT NOT NULL DEFAULT 1 COMMENT '状态，1 已发布',
+    is_featured TINYINT NOT NULL DEFAULT 0 COMMENT '是否首页精选',
+    is_pinned TINYINT NOT NULL DEFAULT 0 COMMENT '是否置顶',
+    view_count INT NOT NULL DEFAULT 0 COMMENT '浏览量',
+    comment_count INT NOT NULL DEFAULT 0 COMMENT '评论数',
+    favorite_count INT NOT NULL DEFAULT 0 COMMENT '收藏数',
+    published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_community_post_board (board_id),
+    KEY idx_community_post_featured (is_featured, published_at),
+    KEY idx_community_post_published (published_at)
+) COMMENT='社区帖子表';

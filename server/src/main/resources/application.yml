@@ -1,0 +1,56 @@
+server:
+  port: 8081
+
+spring:
+  profiles:
+    active: dev
+  main:
+    allow-circular-references: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+  datasource:
+    driver-class-name: ${kite-universe.datasource.driver-class-name}
+    url: jdbc:mysql://${kite-universe.datasource.host}:${kite-universe.datasource.port}/${kite-universe.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${kite-universe.datasource.username}
+    password: ${kite-universe.datasource.password}
+  data:
+  redis:
+      host: ${kite-universe.redis.host}
+      database: ${kite-universe.redis.database}
+      port: ${kite-universe.redis.port}
+
+mybatis:
+  # mapper 配置文件位置
+  mapper-locations: classpath:mapper/*.xml
+  # 实体类别名扫描包
+  type-aliases-package: org.kiteseven.kiteuniverse.pojo
+  configuration:
+    # 开启下划线到驼峰的自动映射
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    org:
+      kiteseven:
+        kiteuniverse:
+          mapper: debug
+          service: info
+          controller: info
+
+kite-universe:
+  auth:
+    sms-send-cooldown-seconds: 60
+    sms-daily-limit-per-phone: 20
+    sms-ip-window-seconds: 300
+    sms-ip-window-limit: 10
+  content:
+    home-cache-seconds: 300
+    boards-cache-seconds: 300
+  file:
+    upload-dir: ./uploads
+    public-base-path: /uploads
+    avatar-dir: avatars
+  redis:
+    key-prefix: kite-universe

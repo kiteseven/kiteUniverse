@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Chibi-style project logo inspired by the user's anime character references. -->
+  <defs>
+    <radialGradient id="ku-halo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 268) rotate(90) scale(188)">
+      <stop offset="0" stop-color="#FDFEFF" />
+      <stop offset="0.6" stop-color="#EBF5FF" />
+      <stop offset="1" stop-color="#DDEEFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ku-hair" x1="190" y1="118" x2="332" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" />
+      <stop offset="0.62" stop-color="#F3F5FF" />
+      <stop offset="1" stop-color="#D8DDFD" />
+    </linearGradient>
+    <linearGradient id="ku-tip" x1="170" y1="250" x2="334" y2="410" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8BA1FF" />
+      <stop offset="0.46" stop-color="#5E73FF" />
+      <stop offset="1" stop-color="#3448DF" />
+    </linearGradient>
+    <linearGradient id="ku-eye" x1="205" y1="214" x2="305" y2="286" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8FD0FF" />
+      <stop offset="0.58" stop-color="#4565FF" />
+      <stop offset="1" stop-color="#1F2E7A" />
+    </linearGradient>
+    <linearGradient id="ku-coat" x1="214" y1="320" x2="298" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#727C8E" />
+      <stop offset="1" stop-color="#363B49" />
+    </linearGradient>
+    <filter id="ku-shadow" x="64" y="40" width="384" height="432" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#295A97" flood-opacity="0.18" />
+    </filter>
+  </defs>
+
+  <!-- Soft background glow so the sticker silhouette reads on light sections. -->
+  <ellipse cx="256" cy="270" rx="166" ry="170" fill="url(#ku-halo)" />
+
+  <g filter="url(#ku-shadow)" stroke="#171B26" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Back hair and flowing blue tails. -->
+    <path d="M186 282C142 300 124 342 132 402C138 440 170 448 208 422C220 380 221 334 214 294L186 282Z" fill="url(#ku-tip)" />
+    <path d="M326 282C370 300 388 342 380 402C374 440 342 448 304 422C292 380 291 334 298 294L326 282Z" fill="url(#ku-tip)" />
+    <path d="M164 184C172 130 212 98 266 98C324 98 364 134 362 202C360 252 344 290 318 318C301 337 280 346 256 346C232 346 210 338 192 320C170 298 154 262 154 214C154 202 156 192 164 184Z" fill="url(#ku-hair)" />
+
+    <!-- Tiny body to keep the logo chibi and cute. -->
+    <path d="M216 318C226 306 240 300 256 300C272 300 286 306 296 318L304 390H208L216 318Z" fill="url(#ku-coat)" />
+    <path d="M230 306H282L292 332L256 348L220 332L230 306Z" fill="#141A25" />
+    <path d="M238 298H274V316H238V298Z" fill="#2F81F5" />
+    <path d="M206 332L176 350L188 390L224 374L228 340L206 332Z" fill="#5460D7" />
+    <path d="M306 332L336 350L324 390L288 374L284 340L306 332Z" fill="#5460D7" />
+    <path d="M240 390H252V446H240V390Z" fill="#141821" />
+    <path d="M260 390H272V446H260V390Z" fill="#141821" />
+    <circle cx="214" cy="370" r="16" fill="#FFF6F7" />
+    <circle cx="298" cy="370" r="16" fill="#FFF6F7" />
+  </g>
+
+  <!-- Face and front hair. -->
+  <g stroke="#171B26" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="256" cy="228" rx="92" ry="84" fill="#FFF8F6" />
+    <path d="M254 104C238 76 270 64 292 82C305 92 304 114 282 130" fill="#E6EAFF" />
+    <path d="M182 176C202 148 232 138 256 138C224 174 220 216 226 254C200 242 182 214 182 176Z" fill="url(#ku-hair)" />
+    <path d="M330 174C310 146 280 138 256 138C288 174 292 216 286 254C312 242 330 212 330 174Z" fill="url(#ku-hair)" />
+    <path d="M200 140C216 116 242 102 272 102C304 102 330 120 340 148C320 138 298 138 278 142C290 154 292 174 286 192C274 180 262 174 256 174C250 174 238 180 226 192C220 174 222 154 234 142C222 140 210 140 200 140Z" fill="#FFFFFF" />
+    <path d="M182 190C164 214 166 256 196 286C214 272 224 248 222 220C220 206 214 194 204 184L182 190Z" fill="url(#ku-tip)" />
+    <path d="M330 190C348 214 346 256 316 286C298 272 288 248 290 220C292 206 298 194 308 184L330 190Z" fill="url(#ku-tip)" />
+  </g>
+
+  <!-- Eyes, mouth, blush, and small anime details. -->
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M204 206C216 192 232 190 244 202" stroke="#171B26" stroke-width="9" />
+    <path d="M268 202C280 190 296 192 308 206" stroke="#171B26" stroke-width="9" />
+    <ellipse cx="224" cy="236" rx="24" ry="30" fill="url(#ku-eye)" stroke="#171B26" stroke-width="8" />
+    <ellipse cx="288" cy="236" rx="24" ry="30" fill="url(#ku-eye)" stroke="#171B26" stroke-width="8" />
+    <ellipse cx="228" cy="244" rx="10" ry="12" fill="#121723" />
+    <ellipse cx="292" cy="244" rx="10" ry="12" fill="#121723" />
+    <circle cx="218" cy="226" r="6" fill="#FFFFFF" />
+    <circle cx="282" cy="226" r="6" fill="#FFFFFF" />
+    <path d="M248 268C254 272 258 272 264 268" stroke="#E59DA7" stroke-width="5" />
+    <path d="M252 246L248 258" stroke="#E3B1A9" stroke-width="4" />
+    <ellipse cx="192" cy="258" rx="14" ry="10" fill="#FFC7D8" fill-opacity="0.6" />
+    <ellipse cx="320" cy="258" rx="14" ry="10" fill="#FFC7D8" fill-opacity="0.6" />
+  </g>
+
+  <!-- Character accents taken from the references: blue earrings and center clip. -->
+  <g stroke="#171B26" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M246 162L256 150L266 162L256 176L246 162Z" fill="#222833" />
+    <rect x="176" y="194" width="24" height="44" rx="12" fill="#95B9FF" />
+    <rect x="312" y="194" width="24" height="44" rx="12" fill="#95B9FF" />
+    <path d="M186 238L176 252" stroke="#6D86FF" />
+    <path d="M326 238L336 252" stroke="#6D86FF" />
+    <path d="M158 202C142 194 128 196 120 210C136 210 148 218 158 228" fill="#FFFFFF" />
+    <path d="M354 202C370 194 384 196 392 210C376 210 364 218 354 228" fill="#FFFFFF" />
+  </g>
+</svg>
