@@ -3,10 +3,12 @@ import {
   fetchCurrentUserFavoritePosts,
   fetchCurrentUserPosts,
   fetchCurrentUserProfile,
+  generateAiGrowthReport,
   logoutCurrentSession,
   resolveAssetUrl,
   updateCurrentUserProfile,
   uploadCurrentUserAvatar,
+  type AiGrowthReportResult,
   type PostSummaryData,
   type UserDetailVO,
   type UserInfoUpdatePayload
@@ -16,6 +18,8 @@ import {
   loadStoredToken,
   syncStoredUserFromDetail
 } from '../services/session';
+
+declare const marked: any;
 
 interface ProfileFormState {
   nickname: string;
@@ -97,7 +101,10 @@ export const ProfilePage = {
       profileError: '',
       ownPostsError: '',
       favoritePostsError: '',
-      profileMessage: ''
+      profileMessage: '',
+      growthReport: null as AiGrowthReportResult | null,
+      growthReportLoading: false,
+      growthReportError: ''
     };
   },
   methods: {
@@ -347,6 +354,33 @@ export const ProfilePage = {
     },
 
     /**
+     * Renders Markdown text to HTML using the global marked library.
+     */
+    renderMarkdown(this: any, content: string | null) {
+      if (!content) return '';
+      if (typeof marked === 'undefined') return content;
+      return marked.parse(content);
+    },
+
+    /**
+     * Generates a personalized AI growth report for the current user.
+     */
+    async fetchGrowthReport(this: any) {
+      const token = loadStoredToken();
+      if (!token) return;
+      this.growthReportLoading = true;
+      this.growthReportError = '';
+      this.growthReport = null;
+      try {
+        this.growthReport = await generateAiGrowthReport(token);
+      } catch (error) {
+        this.growthReportError = error instanceof Error ? error.message : 'AI 报告生成失败，请稍后重试。';
+      } finally {
+        this.growthReportLoading = false;
+      }
+    },
+
+    /**
      * Clears the current session and redirects the user back to the login modal.
      */
     redirectToLogin(this: any, message: string) {
@@ -399,6 +433,8 @@ export const ProfilePage = {
               <span>加入时间：{{ formatDateTime(detail?.createTime) }}</span>
               <span>已发帖子：{{ ownPosts.length }}</span>
               <span>收藏内容：{{ favoritePosts.length }}</span>
+              <span>粉丝：{{ detail?.followerCount ?? 0 }}</span>
+              <span>关注：{{ detail?.followingCount ?? 0 }}</span>
             </div>
           </div>
         </div>
@@ -427,7 +463,10 @@ export const ProfilePage = {
                 <span class="panel__kicker">资料设置</span>
                 <h2>编辑个人资料</h2>
               </div>
-              <span class="panel__link profile-panel__status">资料完整度 {{ getProfileCompletion() }}%</span>
+              <span class="panel__link profile-panel__status" style="display:flex;align-items:center;gap:10px;">
+                资料 {{ getProfileCompletion() }}%
+                <span class="progress-bar" style="width:80px;"><span class="progress-bar__fill" :style="{ width: getProfileCompletion() + '%' }"></span></span>
+              </span>
             </div>
 
             <div v-if="loading" class="profile-loading">正在加载你的个人资料...</div>
@@ -531,9 +570,10 @@ export const ProfilePage = {
                 <div class="post-summary-card__foot">
                   <div class="topic-card__stats">
                     <span class="topic-stat">{{ post.boardName }}</span>
-                    <span class="topic-stat">浏览 {{ post.viewCount }}</span>
-                    <span class="topic-stat">评论 {{ post.commentCount }}</span>
-                    <span class="topic-stat">收藏 {{ post.favoriteCount }}</span>
+                    <span class="topic-stat icon-eye">浏览 {{ post.viewCount }}</span>
+                    <span class="topic-stat icon-comment">评论 {{ post.commentCount }}</span>
+                    <span class="topic-stat icon-bookmark">收藏 {{ post.favoriteCount }}</span>
+                    <span class="topic-stat icon-heart">点赞 {{ post.likeCount || 0 }}</span>
                   </div>
                   <div class="post-summary-card__actions">
                     <router-link class="button button--ghost button--small" :to="'/posts/' + post.id">查看</router-link>
@@ -575,8 +615,9 @@ export const ProfilePage = {
                 <div class="post-summary-card__foot">
                   <div class="topic-card__stats">
                     <span class="topic-stat">{{ post.boardName }}</span>
-                    <span class="topic-stat">作者 {{ post.authorName }}</span>
-                    <span class="topic-stat">评论 {{ post.commentCount }}</span>
+                    <span class="topic-stat icon-user">作者 <router-link v-if="post.authorId" :to="'/users/' + post.authorId">{{ post.authorName }}</router-link><template v-else>{{ post.authorName }}</template></span>
+                    <span class="topic-stat icon-comment">评论 {{ post.commentCount }}</span>
+                    <span class="topic-stat icon-heart">点赞 {{ post.likeCount || 0 }}</span>
                   </div>
                   <div class="post-summary-card__actions">
                     <router-link class="button button--ghost button--small" :to="'/posts/' + post.id">查看详情</router-link>
@@ -634,8 +675,47 @@ export const ProfilePage = {
                 <strong>{{ favoritePosts.length }}</strong>
               </div>
               <div class="profile-side-card__row">
+                <span>粉丝数</span>
+                <strong>{{ detail?.followerCount ?? 0 }}</strong>
+              </div>
+              <div class="profile-side-card__row">
+                <span>关注数</span>
+                <strong>{{ detail?.followingCount ?? 0 }}</strong>
+              </div>
+              <div class="profile-side-card__row">
                 <span>资料完整度</span>
                 <strong>{{ getProfileCompletion() }}%</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel soft-panel profile-side-card">
+            <div class="panel__header">
+              <div>
+                <span class="panel__kicker">AI 功能</span>
+                <h2>玩家成长报告</h2>
+              </div>
+            </div>
+
+            <div class="notice-list">
+              <p>AI 会根据你的积分、等级和发帖记录生成个性化成长报告。</p>
+              <button
+                class="button button--primary button--small"
+                type="button"
+                @click="fetchGrowthReport"
+                :disabled="growthReportLoading"
+                style="margin-top:8px;"
+              >
+                <span class="ai-badge ai-badge--inline">AI</span>
+                {{ growthReportLoading ? '生成中...' : '生成我的成长报告' }}
+              </button>
+              <p v-if="growthReportError" class="auth-feedback auth-feedback--error" style="margin-top:8px;">{{ growthReportError }}</p>
+              <div v-if="growthReport" class="growth-report">
+                <div class="growth-report__meta">
+                  <span class="capsule">{{ growthReport.levelName }}</span>
+                  <span class="growth-report__points">{{ growthReport.points }} 积分</span>
+                </div>
+                <div class="growth-report__body" v-html="renderMarkdown(growthReport.report)"></div>
               </div>
             </div>
           </section>

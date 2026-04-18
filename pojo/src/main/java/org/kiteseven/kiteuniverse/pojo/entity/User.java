@@ -58,6 +58,16 @@ public class User extends BaseEntity {
      */
     private LocalDateTime lastLoginTime;
 
+    /**
+     * 用户角色：user / admin。
+     */
+    private String role;
+
+    /**
+     * 禁言截止时间，null 表示未禁言。
+     */
+    private LocalDateTime muteUntil;
+
     public String getUsername() {
         return username;
     }
@@ -128,5 +138,21 @@ public class User extends BaseEntity {
 
     public void setLastLoginTime(LocalDateTime lastLoginTime) {
         this.lastLoginTime = lastLoginTime;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public LocalDateTime getMuteUntil() {
+        return muteUntil;
+    }
+
+    public void setMuteUntil(LocalDateTime muteUntil) {
+        this.muteUntil = muteUntil;
     }
 }

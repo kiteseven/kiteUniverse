@@ -5,6 +5,16 @@ import { BoardDetailPage } from '../pages/board-detail';
 import { PostDetailPage } from '../pages/post-detail';
 import { PostComposePage } from '../pages/post-compose';
 import { SearchPage } from '../pages/search';
+import { UserProfilePage } from '../pages/user-profile';
+import { NotificationsPage } from '../pages/notifications';
+import { DiscoverPage } from '../pages/discover';
+import { TopicsPage } from '../pages/topics';
+import { GameToolsPage } from '../pages/game-tools';
+import { WikiPage } from '../pages/wiki';
+import { StrategiesPage } from '../pages/strategies';
+import { CheckInPage } from '../pages/checkin';
+import { MessagesPage } from '../pages/messages';
+import { AdminPage } from '../pages/admin';
 import { hasStoredToken } from '../services/session';
 
 export const routes = [
@@ -65,12 +75,107 @@ export const routes = [
     }
   },
   {
+    path: '/users/:userId',
+    name: 'UserProfile',
+    component: UserProfilePage,
+    meta: {
+      title: '用户主页',
+      icon: 'user'
+    }
+  },
+  {
     path: '/search',
     name: 'Search',
     component: SearchPage,
     meta: {
       title: '搜索结果',
       icon: 'search'
+    }
+  },
+  {
+    path: '/notifications',
+    name: 'Notifications',
+    component: NotificationsPage,
+    meta: {
+      title: '消息中心',
+      icon: 'bell',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/discover',
+    name: 'Discover',
+    component: DiscoverPage,
+    meta: {
+      title: '发现',
+      icon: 'compass'
+    }
+  },
+  {
+    path: '/topics/:badge',
+    name: 'Topics',
+    component: TopicsPage,
+    meta: {
+      title: '话题',
+      icon: 'tag'
+    }
+  },
+  {
+    path: '/game-tools',
+    name: 'GameTools',
+    component: GameToolsPage,
+    meta: {
+      title: '游戏工具',
+      icon: 'gamepad',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/wiki',
+    name: 'Wiki',
+    component: WikiPage,
+    meta: {
+      title: '玩家百科',
+      icon: 'book'
+    }
+  },
+  {
+    path: '/strategies',
+    name: 'Strategies',
+    component: StrategiesPage,
+    meta: {
+      title: '攻略合集',
+      icon: 'map'
+    }
+  },
+  {
+    path: '/checkin',
+    name: 'CheckIn',
+    component: CheckInPage,
+    meta: {
+      title: '每日签到',
+      icon: 'calendar',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/messages',
+    name: 'Messages',
+    component: MessagesPage,
+    meta: {
+      title: '私信',
+      icon: 'message',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: AdminPage,
+    meta: {
+      title: '管理后台',
+      icon: 'shield',
+      requiresAuth: true
     }
   }
 ];
@@ -82,6 +187,7 @@ export const RouteNames = {
   POST_DETAIL: 'PostDetail',
   COMPOSE: 'Compose',
   PROFILE: 'Profile',
+  USER_PROFILE: 'UserProfile',
   SEARCH: 'Search'
 } as const;
 

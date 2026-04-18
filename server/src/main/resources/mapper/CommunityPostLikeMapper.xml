@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.CommunityPostLikeMapper">
+
+    <!-- 查询指定帖子与用户的点赞状态。 -->
+    <select id="selectStatus" resultType="int">
+        SELECT status
+        FROM community_post_like
+        WHERE post_id = #{postId}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <!-- 新增点赞关系。 -->
+    <insert id="insert" parameterType="org.kiteseven.kiteuniverse.pojo.entity.CommunityPostLike"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO community_post_like (
+            post_id, user_id, status
+        ) VALUES (
+            #{postId}, #{userId}, #{status}
+        )
+    </insert>
+
+    <!-- 激活已有点赞关系。 -->
+    <update id="activate">
+        UPDATE community_post_like
+        SET
+            status = 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE post_id = #{postId}
+          AND user_id = #{userId}
+          AND status = 0
+    </update>
+
+    <!-- 取消已有点赞关系。 -->
+    <update id="deactivate">
+        UPDATE community_post_like
+        SET
+            status = 0,
+            update_time = CURRENT_TIMESTAMP
+        WHERE post_id = #{postId}
+          AND user_id = #{userId}
+          AND status = 1
+    </update>
+
+</mapper>

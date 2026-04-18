@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.DailyCheckInMapper">
+
+    <resultMap id="DailyCheckInResultMap" type="org.kiteseven.kiteuniverse.pojo.entity.DailyCheckIn">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="check_in_date" property="checkInDate"/>
+        <result column="points_earned" property="pointsEarned"/>
+        <result column="consecutive_days" property="consecutiveDays"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <select id="selectByUserIdAndDate" resultMap="DailyCheckInResultMap">
+        SELECT * FROM daily_check_in
+        WHERE user_id = #{userId} AND check_in_date = #{checkInDate}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO daily_check_in (user_id, check_in_date, points_earned, consecutive_days)
+        VALUES (#{userId}, #{checkInDate}, #{pointsEarned}, #{consecutiveDays})
+    </insert>
+
+</mapper>

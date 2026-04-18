@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- V2 chibi anime logo with a sticker-like silhouette for header and hero usage. -->
+  <defs>
+    <radialGradient id="ku2-bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 244) rotate(90) scale(188)">
+      <stop offset="0" stop-color="#FFFFFF" />
+      <stop offset="0.58" stop-color="#EEF6FF" />
+      <stop offset="1" stop-color="#D7E9FF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ku2-hair" x1="184" y1="118" x2="330" y2="302" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" />
+      <stop offset="0.62" stop-color="#F5F7FF" />
+      <stop offset="1" stop-color="#DDE3FF" />
+    </linearGradient>
+    <linearGradient id="ku2-tip" x1="172" y1="250" x2="338" y2="408" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8BA7FF" />
+      <stop offset="0.54" stop-color="#5673FF" />
+      <stop offset="1" stop-color="#2C41D8" />
+    </linearGradient>
+    <linearGradient id="ku2-eye" x1="204" y1="214" x2="304" y2="282" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#91D5FF" />
+      <stop offset="0.56" stop-color="#4A6DFF" />
+      <stop offset="1" stop-color="#25357F" />
+    </linearGradient>
+    <linearGradient id="ku2-coat" x1="214" y1="332" x2="300" y2="426" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#757D8C" />
+      <stop offset="1" stop-color="#373B48" />
+    </linearGradient>
+    <filter id="ku2-shadow" x="72" y="52" width="368" height="396" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#2A578F" flood-opacity="0.16" />
+    </filter>
+  </defs>
+
+  <ellipse cx="256" cy="250" rx="170" ry="176" fill="url(#ku2-bg)" />
+
+  <g filter="url(#ku2-shadow)" stroke="#181B26" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Hair tails behind the head to strengthen the chibi silhouette. -->
+    <path d="M176 270C144 286 132 320 138 376C142 412 168 420 200 398C210 358 210 318 202 282L176 270Z" fill="url(#ku2-tip)" />
+    <path d="M336 270C368 286 380 320 374 376C370 412 344 420 312 398C302 358 302 318 310 282L336 270Z" fill="url(#ku2-tip)" />
+
+    <!-- Tiny body under a large head to keep the icon cute. -->
+    <path d="M216 308C226 298 240 292 256 292C272 292 286 298 296 308L304 384H208L216 308Z" fill="url(#ku2-coat)" />
+    <path d="M232 298H280L292 324L256 342L220 324L232 298Z" fill="#141923" />
+    <path d="M236 290H276V306H236V290Z" fill="#2D7EF5" />
+    <path d="M204 332L176 350L188 384L224 372L226 340L204 332Z" fill="#4A57D5" />
+    <path d="M308 332L336 350L324 384L288 372L286 340L308 332Z" fill="#4A57D5" />
+    <rect x="240" y="384" width="12" height="52" rx="6" fill="#121620" />
+    <rect x="260" y="384" width="12" height="52" rx="6" fill="#121620" />
+    <circle cx="214" cy="366" r="15" fill="#FFF5F7" />
+    <circle cx="298" cy="366" r="15" fill="#FFF5F7" />
+  </g>
+
+  <!-- Head and face. -->
+  <g stroke="#181B26" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="256" cy="224" rx="96" ry="88" fill="#FFF8F6" />
+    <path d="M250 108C236 78 266 68 286 84C300 96 298 116 278 130" fill="#E8ECFF" />
+    <path d="M196 140C216 120 242 110 274 112C308 114 334 132 344 160C320 148 292 146 264 150C278 164 280 188 272 210C260 196 248 188 238 186C228 184 214 190 198 206C196 180 202 158 214 146C208 144 202 142 196 140Z" fill="url(#ku2-hair)" />
+    <path d="M184 182C166 200 162 230 174 258C186 286 210 296 230 284C220 256 220 218 228 184L184 182Z" fill="url(#ku2-tip)" />
+    <path d="M328 182C346 200 350 230 338 258C326 286 302 296 282 284C292 256 292 218 284 184L328 182Z" fill="url(#ku2-tip)" />
+    <path d="M202 120C220 98 246 88 274 90C308 92 334 110 346 138C320 128 294 128 270 132C284 144 288 162 284 180C270 166 256 158 244 158C232 158 218 164 202 178C198 156 198 136 202 120Z" fill="#FFFFFF" />
+    <path d="M154 202C140 192 126 194 118 208C134 208 146 214 156 224" fill="#FFFFFF" />
+    <path d="M358 202C372 192 386 194 394 208C378 208 366 214 356 224" fill="#FFFFFF" />
+    <path d="M246 160L256 148L266 160L256 174L246 160Z" fill="#252937" />
+  </g>
+
+  <!-- Facial expression closer to the cute references. -->
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M204 204C214 194 228 194 238 202" stroke="#181B26" stroke-width="9" />
+    <path d="M274 202C284 194 298 194 308 204" stroke="#181B26" stroke-width="9" />
+    <ellipse cx="222" cy="232" rx="24" ry="30" fill="url(#ku2-eye)" stroke="#181B26" stroke-width="8" />
+    <ellipse cx="290" cy="232" rx="24" ry="30" fill="url(#ku2-eye)" stroke="#181B26" stroke-width="8" />
+    <ellipse cx="226" cy="238" rx="10" ry="12" fill="#131824" />
+    <ellipse cx="294" cy="238" rx="10" ry="12" fill="#131824" />
+    <circle cx="216" cy="220" r="6" fill="#FFFFFF" />
+    <circle cx="284" cy="220" r="6" fill="#FFFFFF" />
+    <path d="M251 246L248 256" stroke="#E6B5AE" stroke-width="4" />
+    <ellipse cx="194" cy="252" rx="16" ry="11" fill="#FFC3D8" fill-opacity="0.58" />
+    <ellipse cx="318" cy="252" rx="16" ry="11" fill="#FFC3D8" fill-opacity="0.58" />
+    <path d="M244 272C250 280 262 280 268 272" stroke="#F4A0B0" stroke-width="5" />
+    <path d="M246 272C250 286 262 286 266 272V268C260 264 252 264 246 268V272Z" fill="#FF9CAF" stroke="#181B26" stroke-width="6" />
+  </g>
+
+  <!-- Blue earrings and small accent clips to echo the references. -->
+  <g stroke="#181B26" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="178" y="194" width="22" height="40" rx="11" fill="#AAC5FF" />
+    <rect x="312" y="194" width="22" height="40" rx="11" fill="#AAC5FF" />
+    <path d="M188 234L178 248" stroke="#607BFF" />
+    <path d="M324 234L334 248" stroke="#607BFF" />
+    <path d="M188 162L202 170" stroke="#607BFF" />
+    <path d="M324 162L310 170" stroke="#607BFF" />
+  </g>
+</svg>

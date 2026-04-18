@@ -10,31 +10,81 @@
         FROM community_comment
     </select>
 
-    <!-- 查询帖子评论列表。 -->
+    <!-- 查询帖子评论列表（可选携带当前用户点赞状态）。 -->
     <select id="selectByPostId" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostCommentVO">
         SELECT
             c.id,
             c.post_id AS postId,
+            c.parent_id AS parentId,
             c.author_id AS authorId,
             COALESCE(NULLIF(u.nickname, ''), NULLIF(u.username, ''), '社区成员') AS authorName,
             u.avatar AS authorAvatar,
+            COALESCE(NULLIF(pu.nickname, ''), NULLIF(pu.username, ''), NULL) AS replyToName,
             c.content,
+            c.like_count AS likeCount,
+            <if test="userId != null">
+                CASE WHEN cl.status = 1 THEN TRUE ELSE FALSE END AS liked,
+            </if>
+            <if test="userId == null">
+                FALSE AS liked,
+            </if>
             c.create_time AS createTime
         FROM community_comment c
                  LEFT JOIN user_account u ON u.id = c.author_id
+                 LEFT JOIN community_comment pc ON pc.id = c.parent_id
+                 LEFT JOIN user_account pu ON pu.id = pc.author_id
+                 <if test="userId != null">
+                 LEFT JOIN community_comment_like cl ON cl.comment_id = c.id AND cl.user_id = #{userId}
+                 </if>
         WHERE c.post_id = #{postId}
           AND c.status = 1
-        ORDER BY c.id ASC
+        ORDER BY COALESCE(c.parent_id, c.id) ASC, c.id ASC
+    </select>
+
+    <!-- 按编号查询评论实体。 -->
+    <select id="selectById" resultType="org.kiteseven.kiteuniverse.pojo.entity.CommunityComment">
+        SELECT
+            id,
+            post_id AS postId,
+            author_id AS authorId,
+            content,
+            status,
+            COALESCE(like_count, 0) AS likeCount,
+            create_time AS createTime,
+            update_time AS updateTime
+        FROM community_comment
+        WHERE id = #{id}
+        LIMIT 1
     </select>
 
     <!-- 新增评论记录。 -->
     <insert id="insert" parameterType="org.kiteseven.kiteuniverse.pojo.entity.CommunityComment"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO community_comment (
-            post_id, author_id, content, status
+            post_id, parent_id, author_id, content, status, like_count
         ) VALUES (
-            #{postId}, #{authorId}, #{content}, #{status}
+            #{postId}, #{parentId}, #{authorId}, #{content}, #{status}, 0
         )
     </insert>
+
+    <!-- 增加评论点赞数。 -->
+    <update id="incrementLikeCount">
+        UPDATE community_comment
+        SET
+            like_count = COALESCE(like_count, 0) + 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND status = 1
+    </update>
+
+    <!-- 减少评论点赞数。 -->
+    <update id="decrementLikeCount">
+        UPDATE community_comment
+        SET
+            like_count = CASE WHEN COALESCE(like_count, 0) &gt; 0 THEN like_count - 1 ELSE 0 END,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND status = 1
+    </update>
 
 </mapper>

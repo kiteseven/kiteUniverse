@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.GameStatsMapper">
+
+    <resultMap id="GameStatsResultMap" type="org.kiteseven.kiteuniverse.pojo.entity.GameStats">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="action_point" property="actionPoint"/>
+        <result column="max_action_point" property="maxActionPoint"/>
+        <result column="void_shards" property="voidShards"/>
+        <result column="account_level" property="accountLevel"/>
+        <result column="total_runs" property="totalRuns"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectByUserId" resultMap="GameStatsResultMap">
+        SELECT * FROM game_stats WHERE user_id = #{userId}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO game_stats (user_id, action_point, max_action_point, void_shards, account_level, total_runs, update_time)
+        VALUES (#{userId}, #{actionPoint}, #{maxActionPoint}, #{voidShards}, #{accountLevel}, #{totalRuns}, NOW())
+    </insert>
+
+    <update id="updateByUserId">
+        UPDATE game_stats
+        SET action_point     = #{actionPoint},
+            max_action_point = #{maxActionPoint},
+            void_shards      = #{voidShards},
+            account_level    = #{accountLevel},
+            total_runs       = #{totalRuns},
+            update_time      = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+</mapper>

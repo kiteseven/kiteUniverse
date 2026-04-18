@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Param;
 import org.kiteseven.kiteuniverse.pojo.entity.User;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Data access object for user accounts.
@@ -66,6 +67,20 @@ public interface UserMapper {
      * @return active user count
      */
     long countLastLoginSince(@Param("lastLoginSince") LocalDateTime lastLoginSince);
+
+    /**
+     * Returns all user accounts (used for broadcasting announcements).
+     *
+     * @return list of all users
+     */
+    List<User> selectAll();
+
+    /**
+     * Returns all user ids for Bloom filter warm-up.
+     *
+     * @return all user ids
+     */
+    List<Long> selectAllIds();
 
     /**
      * Inserts a user account.

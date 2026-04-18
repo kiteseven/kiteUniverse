@@ -30,6 +30,16 @@ public class PostCreateDTO {
      */
     private String badge;
 
+    /**
+     * 是否包含 AI 生成内容。
+     */
+    private Boolean isAiGenerated;
+
+    /**
+     * 图集图片 URL 列表（JSON 数组字符串），可为空。
+     */
+    private String galleryImages;
+
     public Long getBoardId() {
         return boardId;
     }
@@ -68,5 +78,21 @@ public class PostCreateDTO {
 
     public void setBadge(String badge) {
         this.badge = badge;
+    }
+
+    public Boolean getIsAiGenerated() {
+        return isAiGenerated;
+    }
+
+    public void setIsAiGenerated(Boolean isAiGenerated) {
+        this.isAiGenerated = isAiGenerated;
+    }
+
+    public String getGalleryImages() {
+        return galleryImages;
+    }
+
+    public void setGalleryImages(String galleryImages) {
+        this.galleryImages = galleryImages;
     }
 }

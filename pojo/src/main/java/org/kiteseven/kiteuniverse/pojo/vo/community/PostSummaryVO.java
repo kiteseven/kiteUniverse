@@ -33,6 +33,11 @@ public class PostSummaryVO {
     private String boardTagName;
 
     /**
+     * 作者编号。
+     */
+    private Long authorId;
+
+    /**
      * 作者名称。
      */
     private String authorName;
@@ -68,9 +73,34 @@ public class PostSummaryVO {
     private Integer favoriteCount;
 
     /**
+     * 点赞数。
+     */
+    private Integer likeCount;
+
+    /**
      * 发布时间。
      */
     private LocalDateTime publishedAt;
+
+    /**
+     * 是否置顶。
+     */
+    private Boolean pinned;
+
+    /**
+     * 是否精华。
+     */
+    private Boolean featured;
+
+    /**
+     * ES 高亮标题片段（含 &lt;em&gt; 标签），仅全文搜索时有值。
+     */
+    private String highlightTitle;
+
+    /**
+     * ES 高亮内容片段（含 &lt;em&gt; 标签），来自正文或摘要，仅全文搜索时有值。
+     */
+    private String highlightSnippet;
 
     public Long getId() {
         return id;
@@ -110,6 +140,14 @@ public class PostSummaryVO {
 
     public void setBoardTagName(String boardTagName) {
         this.boardTagName = boardTagName;
+    }
+
+    public Long getAuthorId() {
+        return authorId;
+    }
+
+    public void setAuthorId(Long authorId) {
+        this.authorId = authorId;
     }
 
     public String getAuthorName() {
@@ -168,11 +206,51 @@ public class PostSummaryVO {
         this.favoriteCount = favoriteCount;
     }
 
+    public Integer getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(Integer likeCount) {
+        this.likeCount = likeCount;
+    }
+
     public LocalDateTime getPublishedAt() {
         return publishedAt;
     }
 
     public void setPublishedAt(LocalDateTime publishedAt) {
         this.publishedAt = publishedAt;
+    }
+
+    public Boolean getPinned() {
+        return pinned;
+    }
+
+    public void setPinned(Boolean pinned) {
+        this.pinned = pinned;
+    }
+
+    public Boolean getFeatured() {
+        return featured;
+    }
+
+    public void setFeatured(Boolean featured) {
+        this.featured = featured;
+    }
+
+    public String getHighlightTitle() {
+        return highlightTitle;
+    }
+
+    public void setHighlightTitle(String highlightTitle) {
+        this.highlightTitle = highlightTitle;
+    }
+
+    public String getHighlightSnippet() {
+        return highlightSnippet;
+    }
+
+    public void setHighlightSnippet(String highlightSnippet) {
+        this.highlightSnippet = highlightSnippet;
     }
 }

@@ -10,11 +10,24 @@ public class PostCommentCreateDTO {
      */
     private String content;
 
+    /**
+     * 父评论编号（null 表示顶层评论）。
+     */
+    private Long parentId;
+
     public String getContent() {
         return content;
     }
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
     }
 }

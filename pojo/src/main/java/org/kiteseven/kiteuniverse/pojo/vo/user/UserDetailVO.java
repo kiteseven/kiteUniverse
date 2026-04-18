@@ -99,6 +99,16 @@ public class UserDetailVO {
     private String backgroundImage;
 
     /**
+     * 粉丝数。
+     */
+    private Integer followerCount;
+
+    /**
+     * 关注数。
+     */
+    private Integer followingCount;
+
+    /**
      * 创建时间。
      */
     private LocalDateTime createTime;
@@ -250,6 +260,22 @@ public class UserDetailVO {
 
     public void setBackgroundImage(String backgroundImage) {
         this.backgroundImage = backgroundImage;
+    }
+
+    public Integer getFollowerCount() {
+        return followerCount;
+    }
+
+    public void setFollowerCount(Integer followerCount) {
+        this.followerCount = followerCount;
+    }
+
+    public Integer getFollowingCount() {
+        return followingCount;
+    }
+
+    public void setFollowingCount(Integer followingCount) {
+        this.followingCount = followingCount;
     }
 
     public LocalDateTime getCreateTime() {

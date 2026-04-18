@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.PrivateMessageMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO private_message (sender_id, recipient_id, content, is_read)
+        VALUES (#{senderId}, #{recipientId}, #{content}, 0)
+    </insert>
+
+    <!-- Messages between two users, ascending by create_time -->
+    <select id="selectConversationMessages"
+            resultType="org.kiteseven.kiteuniverse.pojo.vo.message.MessageVO">
+        SELECT
+            m.id,
+            m.sender_id    AS senderId,
+            COALESCE(u.nickname, u.username) AS senderName,
+            u.avatar       AS senderAvatar,
+            m.recipient_id AS recipientId,
+            m.content,
+            (m.is_read = 1) AS `read`,
+            m.create_time  AS createTime
+        FROM private_message m
+        LEFT JOIN user_account u ON u.id = m.sender_id
+        WHERE (m.sender_id = #{userId} AND m.recipient_id = #{otherId})
+           OR (m.sender_id = #{otherId} AND m.recipient_id = #{userId})
+        ORDER BY m.create_time ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <update id="markAsRead">
+        UPDATE private_message
+        SET is_read = 1, update_time = NOW()
+        WHERE recipient_id = #{recipientId}
+          AND sender_id    = #{senderId}
+          AND is_read = 0
+    </update>
+
+    <select id="countUnread" resultType="int">
+        SELECT COUNT(1) FROM private_message
+        WHERE recipient_id = #{userId} AND is_read = 0
+    </select>
+
+    <!--
+      Conversation list:
+      For each distinct "other user" that userId has exchanged messages with,
+      return the latest message summary and unread count.
+    -->
+    <select id="selectConversations"
+            resultType="org.kiteseven.kiteuniverse.pojo.vo.message.ConversationVO">
+        SELECT
+            other_id                                          AS otherUserId,
+            COALESCE(u.nickname, u.username)                  AS otherUserName,
+            u.avatar                                          AS otherUserAvatar,
+            last_content                                      AS lastMessageContent,
+            (last_sender_id = #{userId})                      AS lastMessageByMe,
+            unread_cnt                                        AS unreadCount,
+            last_time                                         AS lastMessageTime
+        FROM (
+            SELECT
+                CASE WHEN sender_id = #{userId} THEN recipient_id ELSE sender_id END AS other_id,
+                SUBSTRING(
+                    (SELECT m2.content
+                     FROM private_message m2
+                     WHERE (m2.sender_id = #{userId} AND m2.recipient_id = CASE WHEN sender_id = #{userId} THEN recipient_id ELSE sender_id END)
+                        OR (m2.sender_id = CASE WHEN sender_id = #{userId} THEN recipient_id ELSE sender_id END AND m2.recipient_id = #{userId})
+                     ORDER BY m2.create_time DESC
+                     LIMIT 1),
+                    1, 60
+                )                                             AS last_content,
+                (SELECT m3.sender_id
+                 FROM private_message m3
+                 WHERE (m3.sender_id = #{userId} AND m3.recipient_id = CASE WHEN sender_id = #{userId} THEN recipient_id ELSE sender_id END)
+                    OR (m3.sender_id = CASE WHEN sender_id = #{userId} THEN recipient_id ELSE sender_id END AND m3.recipient_id = #{userId})
+                 ORDER BY m3.create_time DESC
+                 LIMIT 1)                                     AS last_sender_id,
+                MAX(create_time)                              AS last_time,
+                SUM(CASE WHEN recipient_id = #{userId} AND is_read = 0 THEN 1 ELSE 0 END) AS unread_cnt
+            FROM private_message
+            WHERE sender_id = #{userId} OR recipient_id = #{userId}
+            GROUP BY other_id
+        ) conv
+        LEFT JOIN user_account u ON u.id = conv.other_id
+        ORDER BY last_time DESC
+    </select>
+
+</mapper>

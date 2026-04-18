@@ -3,9 +3,11 @@ package org.kiteseven.kiteuniverse.service;
 import org.kiteseven.kiteuniverse.pojo.dto.community.PostCommentCreateDTO;
 import org.kiteseven.kiteuniverse.pojo.dto.community.PostCreateDTO;
 import org.kiteseven.kiteuniverse.pojo.dto.community.PostUpdateDTO;
+import org.kiteseven.kiteuniverse.pojo.vo.community.CommentLikeStateVO;
 import org.kiteseven.kiteuniverse.pojo.vo.community.PostCommentVO;
 import org.kiteseven.kiteuniverse.pojo.vo.community.PostDetailVO;
 import org.kiteseven.kiteuniverse.pojo.vo.community.PostFavoriteStateVO;
+import org.kiteseven.kiteuniverse.pojo.vo.community.PostLikeStateVO;
 
 /**
  * 提供社区发帖和评论等互动能力。
@@ -84,4 +86,58 @@ public interface CommunityInteractionService {
      * @return 收藏状态
      */
     PostFavoriteStateVO unfavoritePost(Long userId, Long postId);
+
+    /**
+     * 查询当前用户对帖子的点赞状态。
+     *
+     * @param userId 用户编号
+     * @param postId 帖子编号
+     * @return 点赞状态
+     */
+    PostLikeStateVO getLikeState(Long userId, Long postId);
+
+    /**
+     * 点赞帖子。
+     *
+     * @param userId 用户编号
+     * @param postId 帖子编号
+     * @return 点赞状态
+     */
+    PostLikeStateVO likePost(Long userId, Long postId);
+
+    /**
+     * 取消点赞帖子。
+     *
+     * @param userId 用户编号
+     * @param postId 帖子编号
+     * @return 点赞状态
+     */
+    PostLikeStateVO unlikePost(Long userId, Long postId);
+
+    /**
+     * 查询当前用户对评论的点赞状态。
+     *
+     * @param userId 用户编号
+     * @param commentId 评论编号
+     * @return 点赞状态
+     */
+    CommentLikeStateVO getCommentLikeState(Long userId, Long commentId);
+
+    /**
+     * 点赞评论。
+     *
+     * @param userId 用户编号
+     * @param commentId 评论编号
+     * @return 点赞状态
+     */
+    CommentLikeStateVO likeComment(Long userId, Long commentId);
+
+    /**
+     * 取消点赞评论。
+     *
+     * @param userId 用户编号
+     * @param commentId 评论编号
+     * @return 点赞状态
+     */
+    CommentLikeStateVO unlikeComment(Long userId, Long commentId);
 }

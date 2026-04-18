@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.UserBadgeMapper">
+
+    <resultMap id="UserBadgeResultMap" type="org.kiteseven.kiteuniverse.pojo.entity.UserBadge">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="badge_type" property="badgeType"/>
+        <result column="earned_at" property="earnedAt"/>
+    </resultMap>
+
+    <select id="selectByUserId" resultMap="UserBadgeResultMap">
+        SELECT * FROM user_badge WHERE user_id = #{userId} ORDER BY earned_at ASC
+    </select>
+
+    <select id="selectByUserIdAndType" resultMap="UserBadgeResultMap">
+        SELECT * FROM user_badge WHERE user_id = #{userId} AND badge_type = #{badgeType}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_badge (user_id, badge_type, earned_at)
+        VALUES (#{userId}, #{badgeType}, NOW())
+    </insert>
+
+</mapper>

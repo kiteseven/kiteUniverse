@@ -169,30 +169,67 @@ public class CommunityActivitySeeder implements ApplicationRunner {
     }
 
     private void seedAdditionalPosts() {
-        ensurePost("周末补给站开放提醒：体力别急着全花", "version-intel", "starport_editor",
+        ensurePost("周末补给站开放提醒：体力别急着全花", "void-intel", "starport_editor",
                 "本周补给站会在周五晚间开启，先把每日代币和限时兑换看清楚，体力才不容易浪费。",
                 "这周补给站的节奏和之前不太一样，第一晚最值得先拿的是限时票券和能补主力练度的两档材料。体力如果一上来就全投进常驻本，后面很容易发现自己缺的是活动代币。保险一点的做法是先清每日，再看自己缺的是突破素材还是活动兑换。要是你已经排好了本周体力分配，也欢迎把自己的取舍顺手贴出来。",
                 "版本速递", 1, 0, 768, 22, LocalDateTime.now().minusMinutes(45L));
-        ensurePost("夜巡活动里最好用的通用配队是哪几套？", "general-discussion", "night_shift_log",
+        ensurePost("夜巡活动里最好用的通用配队是哪几套？", "corridor-discussion", "night_shift_log",
                 "我先抛砖引玉列了三套常见低配思路，大家也可以把自己顺手的组合继续接在下面。",
                 "这次夜巡活动我来回试了不少配置，最后留下来的还是那几套容错够高、换人也方便的组合。一个是双破盾加站场主C，一个是单核输出配治疗和挂件，另一个是专门给低练度准备的均衡队。如果你已经打完活动，可以聊聊哪一队最顺手；如果还在卡关，也可以直接贴角色池，大家一起看有没有现成能抄的配置。",
                 "玩家热议", 1, 0, 652, 18, LocalDateTime.now().minusMinutes(82L));
-        ensurePost("低练度也能抄的资源规划表，按周拆给大家", "guides-and-wiki", "northwind_plan",
+        ensurePost("低练度也能抄的资源规划表，按周拆给大家", "guides-and-relics", "northwind_plan",
                 "把一周体力、商店兑换和角色培养拆成了更容易照抄的顺序，适合想稳一点推进的新玩家。",
                 "这份表最大的目标不是追求毕业速度，而是尽量减少浪费。前两天优先保证主线推进和主力练度，第三到第五天开始补武器和核心技能，到了周末再看活动商店有没有必须先换的东西。如果你本周正好在补副队，也可以把体力从常驻素材里挪一部分给活动代币，但前提还是主力队伍得先站稳。",
                 "资料整理", 1, 0, 834, 29, LocalDateTime.now().minusMinutes(118L));
-        ensurePost("把港口夜景做成了动态壁纸，放一个预览", "fanworks-and-media", "dockside_radio",
+        ensurePost("把港口夜景做成了动态壁纸，放一个预览", "fanworks-and-showcase", "dockside_radio",
                 "昨晚把角色待机画面和港口灯带重新拼了一遍，做了一版偏安静氛围的动态壁纸。",
                 "这版壁纸主要想保留港口夜色那种风吹过去会轻轻晃动的感觉，所以没有堆太多特效。角色动作也故意压得很轻，只让发梢和外套有一点点呼吸感。先放个预览版，如果大家觉得这个方向还不错，后面我再补一版手机尺寸和更亮一点的版本。",
                 "创作分享", 0, 0, 541, 31, LocalDateTime.now().minusHours(3L));
-        ensurePost("把支线里的港口广播词单独抄出来了，越看越有味道", "general-discussion", "moonwake_note",
+        ensurePost("把支线里的港口广播词单独抄出来了，越看越有味道", "corridor-discussion", "moonwake_note",
                 "支线结尾那段广播词我单独整理了一遍，发现很多情绪其实都埋在停顿和措辞里。",
                 "回头重看这段广播词的时候，最打动我的不是信息量，而是它故意留出来的那些空白。很多句子看起来像在说港口夜班和值守安排，实际上又轻轻碰到了人物当下的心境。我把原文里的几句重点都摘出来了，想看看大家有没有在别处也注意到同样的写法。",
                 "剧情摘录", 0, 0, 428, 16, LocalDateTime.now().minusHours(4L).minusMinutes(15L));
-        ensurePost("做了一套夜航主题头像框配色，先放三张预览", "fanworks-and-media", "paper_crane_radio",
+        ensurePost("做了一套夜航主题头像框配色，先放三张预览", "fanworks-and-showcase", "paper_crane_radio",
                 "用夜港灯带和角色衣装里的蓝灰色重新拼了几版头像框，先挑了三张顺眼的预览图。",
                 "这一套主要想做出那种夜航时窗边有冷光掠过去的感觉，所以整体配色压得比较低，只把边缘和小装饰提亮了一点。现在先放三张预览，如果大家觉得方向对，后面我再把透明底和手机裁切版一起整理出来，方便直接拿去做社交头像或者社区签名图。",
                 "创作草稿", 0, 0, 367, 14, LocalDateTime.now().minusHours(6L).minusMinutes(40L));
+        // --- additional diverse posts ---
+        ensurePost("刃影满命和半命的实战差距有多大？我测了一轮", "corridor-discussion", "afterglow_lab",
+                "专门拿了两套练度相近的刃影对比跑了几段内容，把数字和手感差异都整理出来了。",
+                "很多人问半命刃影值不值得继续氪。我的结论是：对于大多数常规关卡，半命到满命的提升感知没有那么明显，决定输出天花板的往往是遗物词条和技能优先级。真正拉开差距的是第三命和第五命，因为这两个节点改变了技能循环的逻辑。如果你现在是两命或四命，先把遗物补齐比继续抽命座性价比高很多。实测数据我整理在正文表格里，可以直接对号入座看自己的阶段适合哪种策略。",
+                "刃影", 0, 0, 912, 34, LocalDateTime.now().minusDays(1L).minusHours(3L));
+        ensurePost("活动代币兑换优先级速查表（本期更新）", "void-intel", "tea_break_runner",
+                "每期都有人问先换什么，我把这期商店拆成必换、看情况和可以跳过三档，一眼看懂。",
+                "必换档：限时突破素材、技能书×2、遗物选择箱；这三类不换就是亏。看情况档：通用材料箱和体力药水，取决于你本周是否有大体力计划。可以跳过档：装扮碎片和收藏品，这类等下期折扣或者攒代币更稳。补充一句：头像框不要急着换，上周有人反馈下期会出更好看的限定款，等等比较好。",
+                "活动速查", 1, 0, 1043, 47, LocalDateTime.now().minusDays(1L).minusHours(7L));
+        ensurePost("回廊三层以上遗物搭配思路汇总", "guides-and-relics", "drift_compass",
+                "整理了目前玩家反馈最多的高层遗物组合，按职业分开列了每套的优先词条和常见替代方案。",
+                "高层遗物没有完美答案，但有几套组合在社区内反复被提起。术士系优先爆伤和元素强度，遗物主词条上暴击率保持在 60% 以上再堆输出。刃影系更看重破防触发效率，所以攻速和暴击触发比单纯堆面板更重要。钢躯系的核心是减伤阈值，推荐配一件固定生命上限词条的饰品槽遗物。每套搭配我都列了三件套和两件套的过渡方案，新进高层的朋友可以先照着过渡方案走。",
+                "遗物指南", 1, 0, 758, 41, LocalDateTime.now().minusDays(2L).minusHours(1L));
+        ensurePost("新版本剧情主线通关感受，不含剧透", "corridor-discussion", "signal_gull",
+                "刚打完主线新章节，整体节奏和上一章差异挺大，这里聊聊体感，故事内容不透。",
+                "这一章的叙事节奏明显慢下来了，前半段几乎没有战斗高潮，更多在铺人物关系。我个人很喜欢这种处理方式，因为这一章要讲的核心矛盾必须靠积累才能爆发。中段有一个场景是我在整个游戏里印象最深的，建议那个地方把音量调高一点，原声配乐在那里的设计很细。Boss 战整体难度适中，机制比上一章清晰，第一次打大概率能过。",
+                "主线讨论", 0, 0, 634, 28, LocalDateTime.now().minusDays(2L).minusHours(5L));
+        ensurePost("用游戏截图拼了一张角色关系图，连线附注释", "fanworks-and-showcase", "porchlight_signal",
+                "把现有主线和支线里登场过的角色单独截了图，按照剧情关系连线，附上我自己的解读注释。",
+                "做这张图主要是因为我自己玩到后来有点混淆支线里的人物关系，于是边整理边把思路写下来。连线分三类：实线是有直接对话的已知关系，虚线是推测或者间接提及，波浪线是目前存疑或者可能有多重解读的部分。注释我写得比较主观，欢迎大家在评论里指出我没注意到的细节，或者提不同的解读角度。",
+                "角色情报", 0, 0, 489, 22, LocalDateTime.now().minusDays(3L).minusHours(2L));
+        ensurePost("缚魂职业入门指南：选择缚魂的理由和基础打法", "guides-and-relics", "slow_wave_archive",
+                "缚魂很容易被误解成纯辅助，这篇说说它在什么阵容里最不可替代，以及基本技能循环。",
+                "很多新手看到缚魂的输出数字就觉得不够硬，但缚魂的价值在于它同时处于两个层面：控场和增益叠加。标准打法是先挂上限制效果锁住目标行动顺序，再进入增益循环放大队友核心技能的收益。缚魂独自存在的时候价值有限，但只要队里有一名依赖技能触发的主C，缚魂的贡献就会被放大两到三倍。入门推荐先练习技能释放节奏，找到增益窗口的感觉比死记打法公式更重要。",
+                "缚魂", 1, 0, 671, 38, LocalDateTime.now().minusDays(3L).minusHours(8L));
+        ensurePost("周年庆前瞻情报汇总，官方已确认的部分", "void-intel", "starport_editor",
+                "官方渠道目前已经放出来的周年庆信息我整理了一遍，没有猜测内容，只写已确认的部分。",
+                "已确认：周年庆期间限定签到奖励池开启，包含材料礼包和一次性选择器；限定活动关卡共三期，每期持续两周；官方直播定档在周年庆首日，预计有新角色情报和版本路线图公布。未确认但官方暗示过：据开发者日志透露下半年有一次较大的遗物系统调整，具体内容留到直播说。现在只适合把体力和资源留着，别在周年庆前两周把积蓄花空。",
+                "周年前瞻", 1, 0, 1287, 63, LocalDateTime.now().minusDays(4L).minusHours(2L));
+        ensurePost("跑图五连败之后我想清楚了一件事", "corridor-discussion", "rain_dock_log",
+                "连续翻车之后重新复盘，发现自己一直在用错误的方式评估遗物词条优先级。",
+                "连输五局的时候我很沮丧，以为是运气问题。复盘之后才发现问题出在选遗物的思路上：我一直优先选面板数字最高的词条，但在当前职业体系下，触发型词条的实际收益远超静态属性。换了一套选遗物的逻辑之后，同样的起手包我开始能稳到中后期。总结一句：先想清楚自己的胜利条件，再往那个方向找词条，比拿到什么就堆什么更有效。",
+                "心得随笔", 0, 0, 523, 19, LocalDateTime.now().minusDays(1L).minusHours(9L));
+        ensurePost("给即将进高层的朋友：我踩过的几个坑", "guides-and-relics", "afterglow_lab",
+                "进高层之前我犯了好几个本来可以避开的错误，整理出来希望能给后来者省点弯路。",
+                "坑一：以为低层稳定就代表高层也能照搬配队，实际上高层对职业定位的要求更严格。坑二：体力花太多在补命座上，忽略了遗物才是高层门槛的核心。坑三：低估了理解 Boss 机制的重要性，前期用硬打代替理解，到高层之后这个习惯会直接导致翻车。建议进高层之前把目标职业的技能循环吃透，再看看高层常见 Boss 的伤害来源，这两步做好之后带中等遗物进去也能走得不错。",
+                "进阶攻略", 1, 0, 845, 52, LocalDateTime.now().minusDays(4L).minusHours(6L));
     }
 
     private void seedAdditionalComments() {
@@ -250,6 +287,57 @@ public class CommunityActivitySeeder implements ApplicationRunner {
                 "蓝灰这一版好适合夜景截图，等透明底出来我想直接拿去换头像。", LocalDateTime.now().minusHours(5L).minusMinutes(8L));
         ensureComment("做了一套夜航主题头像框配色，先放三张预览", "paper_crane_radio",
                 "第三张边缘那一点冷光特别妙，我觉得这个系列很适合继续做成签名条。", LocalDateTime.now().minusHours(4L).minusMinutes(2L));
+        // --- comments for new posts ---
+        ensureComment("刃影满命和半命的实战差距有多大？我测了一轮", "drift_compass",
+                "三命和五命的节点说到点子上了，我卡在三命之前也明显感觉循环不顺畅。", LocalDateTime.now().minusDays(1L).minusHours(2L).minusMinutes(30L));
+        ensureComment("刃影满命和半命的实战差距有多大？我测了一轮", "slow_wave_archive",
+                "表格对比这个形式很好，新手容易只看描述看晕，有数字对比一眼就能判断自己在哪个阶段。", LocalDateTime.now().minusDays(1L).minusHours(1L).minusMinutes(50L));
+        ensureComment("刃影满命和半命的实战差距有多大？我测了一轮", "northwind_plan",
+                "遗物优先于命座这个结论我这边测试结果一致，补完遗物之后同样命座的提升感非常明显。", LocalDateTime.now().minusDays(1L).minusMinutes(40L));
+        ensureComment("活动代币兑换优先级速查表（本期更新）", "starport_editor",
+                "必换档整理得很准，技能书这期消耗量大，确实不能省，建议放在每天清日常之后第一个换。", LocalDateTime.now().minusDays(1L).minusHours(6L).minusMinutes(10L));
+        ensureComment("活动代币兑换优先级速查表（本期更新）", "rain_dock_log",
+                "头像框那条补充太及时了，我上期就没忍住，结果下期出了个更好看的，悔得不行。", LocalDateTime.now().minusDays(1L).minusHours(5L).minusMinutes(33L));
+        ensureComment("活动代币兑换优先级速查表（本期更新）", "night_shift_log",
+                "收藏品可以跳过这个建议对刚入坑的人很友好，前期资源紧，先把实战材料补齐比摆好看重要。", LocalDateTime.now().minusDays(1L).minusHours(4L).minusMinutes(15L));
+        ensureComment("回廊三层以上遗物搭配思路汇总", "afterglow_lab",
+                "术士那套的暴击率门槛说得很准，60% 以下在高层暴击收益会有很明显的波动感。", LocalDateTime.now().minusDays(1L).minusHours(22L).minusMinutes(14L));
+        ensureComment("回廊三层以上遗物搭配思路汇总", "tea_break_runner",
+                "过渡方案这部分是这篇的精华，很多攻略只写毕业配置，对刚进高层的人参考意义不大。", LocalDateTime.now().minusDays(1L).minusHours(18L).minusMinutes(42L));
+        ensureComment("回廊三层以上遗物搭配思路汇总", "drift_compass",
+                "钢躯减伤阈值那段我之前没仔细研究过，照着改了词条之后感觉硬度提升比堆生命更明显。", LocalDateTime.now().minusDays(1L).minusHours(14L).minusMinutes(7L));
+        ensureComment("新版本剧情主线通关感受，不含剧透", "moonwake_note",
+                "你说的中段那个场景我知道是哪里，音乐进来的时机把氛围全托住了，配音也是整章最好的一段。", LocalDateTime.now().minusDays(2L).minusHours(4L).minusMinutes(20L));
+        ensureComment("新版本剧情主线通关感受，不含剧透", "porchlight_signal",
+                "前半段节奏慢我一开始也有点不适应，但打完之后回头看感觉铺垫是必要的，结局那一段才有力量。", LocalDateTime.now().minusDays(2L).minusHours(3L).minusMinutes(5L));
+        ensureComment("新版本剧情主线通关感受，不含剧透", "signal_gull",
+                "Boss 机制比上一章清晰这个感受一样，第一次进去没看攻略也打得比较顺，机制提示做得好。", LocalDateTime.now().minusDays(1L).minusHours(20L).minusMinutes(38L));
+        ensureComment("用游戏截图拼了一张角色关系图，连线附注释", "moonwake_note",
+                "波浪线的设计很聪明，支线里有几处我也觉得可以有两种解读，你标的几条和我想法差不多。", LocalDateTime.now().minusDays(3L).minusHours(1L).minusMinutes(10L));
+        ensureComment("用游戏截图拼了一张角色关系图，连线附注释", "signal_gull",
+                "有一个细节补充：支线第三章有一段台词里间接提到了两个角色之间还有更早的接触，可以在虚线那里再加一条。", LocalDateTime.now().minusDays(2L).minusHours(22L).minusMinutes(45L));
+        ensureComment("缚魂职业入门指南：选择缚魂的理由和基础打法", "afterglow_lab",
+                "增益窗口那块写得最实用，很多缚魂玩家前期容易抢着输出，反而错过最佳叠加时机。", LocalDateTime.now().minusDays(3L).minusHours(6L).minusMinutes(20L));
+        ensureComment("缚魂职业入门指南：选择缚魂的理由和基础打法", "drift_compass",
+                "我带缚魂进高层踩过的最大坑就是以为控制越多越好，实际上技能循环节奏不对反而拖队友后腿。", LocalDateTime.now().minusDays(3L).minusHours(5L).minusMinutes(10L));
+        ensureComment("缚魂职业入门指南：选择缚魂的理由和基础打法", "northwind_plan",
+                "能不能补一节遗物选择方向？缚魂的遗物词条优先级我一直没找到比较系统的说明。", LocalDateTime.now().minusDays(2L).minusHours(15L).minusMinutes(30L));
+        ensureComment("周年庆前瞻情报汇总，官方已确认的部分", "rain_dock_log",
+                "直播定档消息帮大忙了，我差点周年庆那天排了出行计划，现在可以提前把时间留出来。", LocalDateTime.now().minusDays(4L).minusHours(1L).minusMinutes(15L));
+        ensureComment("周年庆前瞻情报汇总，官方已确认的部分", "tea_break_runner",
+                "遗物系统调整那条让我稍微放下了一点囤货焦虑，如果词条逻辑改了，现在满斗的遗物不一定要急着花体力。", LocalDateTime.now().minusDays(3L).minusHours(23L).minusMinutes(40L));
+        ensureComment("周年庆前瞻情报汇总，官方已确认的部分", "slow_wave_archive",
+                "建议周年庆两周前的帖子可以置顶一下，方便大家随时回来对照，不然帖子沉下去了不好找。", LocalDateTime.now().minusDays(3L).minusHours(18L).minusMinutes(5L));
+        ensureComment("跑图五连败之后我想清楚了一件事", "signal_gull",
+                "触发型词条 vs 静态属性这个思路换了之后我整个遗物规划逻辑都变了，这条值得单独出一篇详解。", LocalDateTime.now().minusDays(1L).minusHours(8L).minusMinutes(20L));
+        ensureComment("跑图五连败之后我想清楚了一件事", "porchlight_signal",
+                "先想清楚胜利条件这句话，我觉得对选职业和选遗物都适用，基本是高层跑图的核心思路。", LocalDateTime.now().minusDays(1L).minusHours(7L).minusMinutes(10L));
+        ensureComment("给即将进高层的朋友：我踩过的几个坑", "northwind_plan",
+                "坑二太真实了，我之前把大量体力投在命座上，进了高层才发现遗物才是真正的门槛。", LocalDateTime.now().minusDays(4L).minusHours(5L).minusMinutes(8L));
+        ensureComment("给即将进高层的朋友：我踩过的几个坑", "rain_dock_log",
+                "低层用硬打代替理解机制这个习惯我也有，高层 Boss 的一套连招能直接把没做功课的玩家秒掉。", LocalDateTime.now().minusDays(4L).minusHours(4L).minusMinutes(25L));
+        ensureComment("给即将进高层的朋友：我踩过的几个坑", "tea_break_runner",
+                "技能循环吃透这个建议对缚魂和术士玩家尤其重要，这两个职业的增益窗口非常吃熟练度。", LocalDateTime.now().minusDays(3L).minusHours(21L).minusMinutes(30L));
     }
 
     private void synchronizeCommentCounts() {

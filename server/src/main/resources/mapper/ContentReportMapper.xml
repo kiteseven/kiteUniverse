@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.ContentReportMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO content_report
+            (reporter_id, target_type, target_id, reason, description, status, create_time, update_time)
+        VALUES
+            (#{reporterId}, #{targetType}, #{targetId}, #{reason}, #{description}, 0, NOW(), NOW())
+    </insert>
+
+    <select id="selectReports" resultType="org.kiteseven.kiteuniverse.pojo.vo.admin.AdminReportVO">
+        SELECT
+            r.id,
+            r.reporter_id AS reporterId,
+            COALESCE(NULLIF(ru.nickname,''), NULLIF(ru.username,''), '匿名') AS reporterName,
+            r.target_type AS targetType,
+            r.target_id AS targetId,
+            r.reason,
+            r.description,
+            r.status,
+            r.handler_id AS handlerId,
+            COALESCE(NULLIF(hu.nickname,''), NULLIF(hu.username,''), NULL) AS handlerName,
+            r.handle_note AS handleNote,
+            r.create_time AS createTime,
+            r.update_time AS updateTime
+        FROM content_report r
+        LEFT JOIN user_account ru ON ru.id = r.reporter_id
+        LEFT JOIN user_account hu ON hu.id = r.handler_id
+        <where>
+            <if test="status != null">
+                AND r.status = #{status}
+            </if>
+        </where>
+        ORDER BY r.create_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countReports" resultType="long">
+        SELECT COUNT(*) FROM content_report
+        <where>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectById" resultType="org.kiteseven.kiteuniverse.pojo.entity.ContentReport">
+        SELECT
+            id, reporter_id AS reporterId, target_type AS targetType,
+            target_id AS targetId, reason, description, status,
+            handler_id AS handlerId, handle_note AS handleNote,
+            create_time AS createTime, update_time AS updateTime
+        FROM content_report WHERE id = #{id}
+    </select>
+
+    <update id="updateHandle">
+        UPDATE content_report
+        SET status = #{status},
+            handler_id = #{handlerId},
+            handle_note = #{handleNote},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="countPending" resultType="long">
+        SELECT COUNT(*) FROM content_report WHERE status = 0
+    </select>
+
+</mapper>

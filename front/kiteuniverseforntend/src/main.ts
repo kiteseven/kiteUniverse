@@ -6,6 +6,9 @@ import brandLogo from './assets/kite-universe-logo-v4.svg';
 import {
   ApiError,
   fetchCurrentAuthUser,
+  fetchSearchSuggestions,
+  fetchUnreadCount,
+  getUnreadMessageCount,
   loginByPhone,
   logoutCurrentSession,
   registerByPhone,
@@ -24,6 +27,7 @@ import {
   type SessionSnapshot
 } from './services/session';
 import { createRouterInstance, RouteNames, RoutePaths, routerHelper } from './router';
+import { wsService } from './services/ws';
 
 type AuthMode = 'login' | 'register';
 
@@ -69,7 +73,16 @@ const App = {
       smsCooldown: 0,
       smsTimerId: 0,
       unsubscribeSessionChange: null as null | (() => void),
-      searchKeyword: ''
+      searchKeyword: '',
+      searchSuggestions: [] as string[],
+      searchSuggestVisible: false,
+      _suggestTimer: 0 as number,
+      unreadCount: 0,
+      unreadMsgCount: 0,
+      _wsNotifUnsub: null as (() => void) | null,
+      _wsMsgUnsub: null as (() => void) | null,
+      userMenuOpen: false,
+      darkMode: false
     };
   },
   watch: {
@@ -87,7 +100,49 @@ const App = {
     doSearch(this: any) {
       const kw = this.searchKeyword.trim();
       if (!kw) return;
+      this.searchSuggestVisible = false;
+      this.searchSuggestions = [];
       void router.push({ path: '/search', query: { keyword: kw } });
+    },
+
+    /**
+     * Selects a suggestion and navigates to search.
+     */
+    selectSuggestion(this: any, suggestion: string) {
+      this.searchKeyword = suggestion;
+      this.searchSuggestVisible = false;
+      this.searchSuggestions = [];
+      void router.push({ path: '/search', query: { keyword: suggestion } });
+    },
+
+    /**
+     * Debounced handler for search input changes — fetches autocomplete suggestions.
+     */
+    onSearchInput(this: any) {
+      if (this._suggestTimer) window.clearTimeout(this._suggestTimer);
+      const kw = this.searchKeyword.trim();
+      if (!kw || kw.length < 1) {
+        this.searchSuggestions = [];
+        this.searchSuggestVisible = false;
+        return;
+      }
+      this._suggestTimer = window.setTimeout(async () => {
+        try {
+          const results = await fetchSearchSuggestions(kw, 8);
+          this.searchSuggestions = results;
+          this.searchSuggestVisible = results.length > 0;
+        } catch {
+          this.searchSuggestions = [];
+          this.searchSuggestVisible = false;
+        }
+      }, 200);
+    },
+
+    /**
+     * Hides suggestions when input loses focus (with delay to allow click).
+     */
+    onSearchBlur(this: any) {
+      window.setTimeout(() => { this.searchSuggestVisible = false; }, 180);
     },
 
     /**
@@ -482,25 +537,134 @@ const App = {
     getUserInitial(this: any) {
       const nickname = this.currentUser?.nickname || 'K';
       return nickname.slice(0, 1).toUpperCase();
+    },
+
+    /**
+     * Fetches the unread notification count and updates the nav badge.
+     */
+    async refreshUnreadCount(this: any) {
+      const token = loadStoredToken();
+      if (!token) {
+        this.unreadCount = 0;
+        return;
+      }
+      try {
+        const result = await fetchUnreadCount(token);
+        this.unreadCount = result.unreadCount;
+      } catch {
+        // Badge failure is non-critical; keep previous value.
+      }
+    },
+
+    /**
+     * Connects to WebSocket and subscribes to real-time notification/message updates.
+     * Also does an initial HTTP fetch to get current counts immediately.
+     */
+    startUnreadPoll(this: any) {
+      const token = loadStoredToken();
+      if (!token) return;
+
+      // Initial fetch for immediate badge display
+      void this.refreshUnreadCount();
+      void this.refreshUnreadMsgCount();
+
+      // Connect WebSocket
+      wsService.connect(token);
+
+      // Subscribe to notification unread count updates
+      if (this._wsNotifUnsub) this._wsNotifUnsub();
+      this._wsNotifUnsub = wsService.onNotificationUpdate((count: number) => {
+        this.unreadCount = count;
+      });
+
+      // Subscribe to incoming private messages
+      if (this._wsMsgUnsub) this._wsMsgUnsub();
+      this._wsMsgUnsub = wsService.onNewMessage(() => {
+        // Increment badge; the messages page handles the full message
+        this.unreadMsgCount += 1;
+      });
+    },
+
+    /**
+     * Disconnects WebSocket and resets unread counts.
+     */
+    stopUnreadPoll(this: any) {
+      if (this._wsNotifUnsub) { this._wsNotifUnsub(); this._wsNotifUnsub = null; }
+      if (this._wsMsgUnsub) { this._wsMsgUnsub(); this._wsMsgUnsub = null; }
+      wsService.disconnect();
+    },
+
+    async refreshUnreadMsgCount(this: any) {
+      const token = loadStoredToken();
+      if (!token) { this.unreadMsgCount = 0; return; }
+      try {
+        const result = await getUnreadMessageCount(token);
+        this.unreadMsgCount = result.count;
+      } catch {
+        // non-critical
+      }
+    },
+
+    /** No-op — replaced by WebSocket in startUnreadPoll. */
+    startUnreadMsgPoll(this: any) { /* merged into startUnreadPoll */ },
+
+    /** No-op — replaced by WebSocket in stopUnreadPoll. */
+    stopUnreadMsgPoll(this: any) { /* merged into stopUnreadPoll */ },
+
+    toggleDarkMode(this: any) {
+      this.darkMode = !this.darkMode;
+      document.documentElement.dataset.theme = this.darkMode ? 'dark' : '';
+      localStorage.setItem('ku-theme', this.darkMode ? 'dark' : 'light');
+    },
+
+    initTheme(this: any) {
+      const saved = localStorage.getItem('ku-theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      this.darkMode = saved ? saved === 'dark' : prefersDark;
+      document.documentElement.dataset.theme = this.darkMode ? 'dark' : '';
     }
   },
   async mounted(this: any) {
+    this._docClickHandler = (e: Event) => {
+      if (!(e.target as Element).closest('.user-menu')) {
+        this.userMenuOpen = false;
+      }
+    };
+    document.addEventListener('click', this._docClickHandler);
+    this.initTheme();
     this.unsubscribeSessionChange = subscribeSessionChange((snapshot) => {
       this.syncSessionState(snapshot);
       this.syncAuthModalWithRoute();
+      if (snapshot.token) {
+        this.startUnreadPoll();
+      } else {
+        this.stopUnreadPoll();
+        this.unreadCount = 0;
+        this.unreadMsgCount = 0;
+      }
     });
     await this.restoreSession();
     this.syncAuthModalWithRoute();
+    if (this.authToken) {
+      this.startUnreadPoll();
+    }
+    window.addEventListener('notification-read-all', () => { this.unreadCount = 0; });
+    window.addEventListener('notification-read-one', () => {
+      if (this.unreadCount > 0) this.unreadCount -= 1;
+    });
   },
   beforeUnmount(this: any) {
     this.resetSmsCooldown();
+    this.stopUnreadPoll();
     this.unsubscribeSessionChange?.();
+    if (this._docClickHandler) document.removeEventListener('click', this._docClickHandler);
   },
   template: `
     <div class="site-bg"></div>
     <header class="site-header">
-      <nav class="site-nav">
-        <div class="site-nav__brand">
+      <!-- Row 1: brand + search + user tools -->
+      <div class="site-topbar">
+        <div class="site-topbar__inner">
           <router-link :to="RoutePaths.HOME" class="brand-mark">
             <span class="brand-mark__icon">
               <img src="${brandLogo}" alt="Kite Universe logo" />
@@ -510,72 +674,91 @@ const App = {
               <small>社区入口</small>
             </span>
           </router-link>
-          <div class="site-nav__links">
-            <router-link
-              :to="RoutePaths.HOME"
-              :class="{ active: isRouteActive(RouteNames.HOME) }"
-            >
-              首页
-            </router-link>
-            <router-link
-              :to="RoutePaths.BOARDS"
-              :class="{ active: isRouteActive(RouteNames.BOARDS) }"
-            >
-              版区
-            </router-link>
-            <router-link
-              v-if="currentUser"
-              :to="RoutePaths.PROFILE"
-              :class="{ active: isRouteActive(RouteNames.PROFILE) }"
-            >
-              个人中心
-            </router-link>
-            <router-link
-              :to="RoutePaths.BOARDS"
-              :class="{ active: isRouteActive(RouteNames.BOARDS) }"
-            >
-              热帖
-            </router-link>
-            <router-link
-              :to="RoutePaths.COMPOSE"
-              :class="{ active: isRouteActive(RouteNames.COMPOSE) }"
-            >
-              发布
-            </router-link>
+          <div class="search-box-wrap">
+            <label class="search-box">
+              <span>搜索内容</span>
+              <input
+                type="text"
+                placeholder="查找帖子、攻略、创作或社区公告"
+                v-model="searchKeyword"
+                @keydown.enter="doSearch"
+                @input="onSearchInput"
+                @blur="onSearchBlur"
+                @focus="onSearchInput"
+              />
+            </label>
+            <ul v-if="searchSuggestVisible && searchSuggestions.length" class="search-suggest">
+              <li
+                v-for="s in searchSuggestions"
+                :key="s"
+                class="search-suggest__item"
+                @mousedown.prevent="selectSuggestion(s)"
+              >{{ s }}</li>
+            </ul>
+          </div>
+          <div class="topbar-actions">
+            <button class="theme-toggle" type="button" @click="toggleDarkMode" :title="darkMode ? '切换浅色模式' : '切换深色模式'">
+              {{ darkMode ? '☀' : '☾' }}
+            </button>
+            <template v-if="currentUser">
+              <router-link :to="RoutePaths.COMPOSE" class="button button--primary button--small">＋ 发帖</router-link>
+              <router-link
+                to="/notifications"
+                :class="{ active: isRouteActive('Notifications') }"
+                class="topbar-icon-btn"
+              >
+                消息
+                <span v-if="unreadCount > 0" class="nav-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+              </router-link>
+              <router-link
+                to="/messages"
+                :class="{ active: isRouteActive('Messages') }"
+                class="topbar-icon-btn"
+              >
+                私信
+                <span v-if="unreadMsgCount > 0" class="nav-badge">{{ unreadMsgCount > 99 ? '99+' : unreadMsgCount }}</span>
+              </router-link>
+              <div class="user-menu" :class="{ open: userMenuOpen }">
+                <button class="user-menu__trigger" type="button" @click="userMenuOpen = !userMenuOpen">
+                  <div class="nav-user__avatar">
+                    <img
+                      v-if="currentUser.avatar"
+                      :src="resolveAvatarUrl(currentUser.avatar)"
+                      :alt="currentUser.nickname + ' avatar'"
+                    />
+                    <span v-else>{{ getUserInitial() }}</span>
+                  </div>
+                  <span class="user-menu__nick">{{ currentUser.nickname }}</span>
+                </button>
+                <div class="user-menu__dropdown" v-show="userMenuOpen">
+                  <router-link :to="RoutePaths.PROFILE" @click="userMenuOpen = false">个人中心</router-link>
+                  <router-link to="/game-tools" @click="userMenuOpen = false">游戏工具</router-link>
+                  <router-link to="/checkin" @click="userMenuOpen = false">每日签到</router-link>
+                  <router-link
+                    v-if="currentUser.role === 'admin'"
+                    to="/admin"
+                    @click="userMenuOpen = false"
+                  >管理后台</router-link>
+                  <div class="user-menu__sep"></div>
+                  <button type="button" @click="logout(); userMenuOpen = false">退出登录</button>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <button class="button button--ghost" @click="openAuthModal('login')">登录</button>
+              <button class="button button--primary" @click="openAuthModal('register')">立即加入</button>
+            </template>
           </div>
         </div>
-
-        <div class="site-nav__tools">
-          <label class="search-box">
-            <span>搜索内容</span>
-            <input
-              type="text"
-              placeholder="查找帖子、攻略、创作或社区公告"
-              v-model="searchKeyword"
-              @keydown.enter="doSearch"
-            />
-          </label>
-          <div v-if="currentUser" class="nav-user">
-            <router-link :to="RoutePaths.PROFILE" class="nav-user__summary">
-              <div class="nav-user__avatar">
-                <img
-                  v-if="currentUser.avatar"
-                  :src="resolveAvatarUrl(currentUser.avatar)"
-                  :alt="currentUser.nickname + ' avatar'"
-                />
-                <span v-else>{{ getUserInitial() }}</span>
-              </div>
-              <div class="nav-user__content">
-                <strong>{{ currentUser.nickname }}</strong>
-                <small>{{ currentUser.phone }}</small>
-              </div>
-            </router-link>
-            <button class="button button--ghost button--small" @click="logout">退出登录</button>
-          </div>
-          <div v-else class="site-nav__actions">
-            <button class="button button--ghost" @click="openAuthModal('login')">登录</button>
-            <button class="button button--primary" @click="openAuthModal('register')">立即加入</button>
-          </div>
+      </div>
+      <!-- Row 2: primary nav links -->
+      <nav class="site-primarynav">
+        <div class="site-primarynav__inner">
+          <router-link :to="RoutePaths.HOME" :class="{ active: isRouteActive(RouteNames.HOME) }">首页</router-link>
+          <router-link :to="RoutePaths.BOARDS" :class="{ active: isRouteActive(RouteNames.BOARDS) }">版区</router-link>
+          <router-link to="/discover" :class="{ active: isRouteActive('Discover') }">发现</router-link>
+          <router-link to="/strategies" :class="{ active: isRouteActive('Strategies') }">攻略</router-link>
+          <router-link to="/wiki" :class="{ active: isRouteActive('Wiki') }">百科</router-link>
         </div>
       </nav>
     </header>
@@ -686,6 +869,25 @@ const App = {
               {{ authLoading ? '提交中...' : getSubmitButtonText() }}
             </button>
           </form>
+
+          <div class="auth-divider">
+            <span>或通过第三方登录</span>
+          </div>
+
+          <div class="auth-oauth-row">
+            <button class="button button--oauth" type="button" disabled title="微信登录（即将开放）">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8.69 13.12c-.4 0-.73-.32-.73-.72s.33-.72.73-.72.73.32.73.72-.32.72-.73.72zm4.74 0c-.4 0-.73-.32-.73-.72s.33-.72.73-.72.73.32.73.72-.32.72-.73.72zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+              微信
+            </button>
+            <button class="button button--oauth" type="button" disabled title="QQ登录（即将开放）">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><circle cx="9" cy="11" r="1.2"/><circle cx="15" cy="11" r="1.2"/><path d="M12 16c-1.65 0-3-.9-3-2h6c0 1.1-1.35 2-3 2z"/></svg>
+              QQ
+            </button>
+            <button class="button button--oauth" type="button" disabled title="微博登录（即将开放）">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10.09 3.49C6.3 3.84 2.86 6.63 2.06 10.35c-.76 3.52 1 7.13 4.17 8.98 3.45 2.02 7.93 1.44 10.69-1.31 2.57-2.56 3.14-6.59 1.36-9.73C16.5 5.23 13.21 3.2 10.09 3.49zm3.39 13.09c-1.56 1.02-3.74 1.17-5.43.38-1.59-.75-2.54-2.37-2.3-4.01.23-1.57 1.43-2.88 2.97-3.33 1.55-.45 3.26-.02 4.43 1.08 1.24 1.15 1.6 3 .84 4.44-.18.34-.32.37-.51.44zm7.52-7.97c-.56-.14-1.12.2-1.27.76-.14.55.2 1.12.75 1.27 1.01.27 1.72 1.2 1.72 2.24 0 .36.11.7.3.97.37-.59.57-1.28.57-2.01 0-1.6-1.1-2.98-2.07-3.23z"/></svg>
+              微博
+            </button>
+          </div>
         </div>
       </section>
     </div>

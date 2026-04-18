@@ -19,6 +19,9 @@
         <result column="view_count" property="viewCount"/>
         <result column="comment_count" property="commentCount"/>
         <result column="favorite_count" property="favoriteCount"/>
+        <result column="like_count" property="likeCount"/>
+        <result column="is_ai_generated" property="isAiGenerated"/>
+        <result column="gallery_images" property="galleryImages"/>
         <result column="published_at" property="publishedAt"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
@@ -31,6 +34,7 @@
         b.name AS boardName,
         b.slug AS boardSlug,
         b.tag_name AS boardTagName,
+        p.author_id AS authorId,
         COALESCE(NULLIF(u.nickname, ''), NULLIF(u.username, ''), '社区编辑部') AS authorName,
         COALESCE(NULLIF(p.badge, ''), b.tag_name) AS badge,
         p.title,
@@ -38,7 +42,12 @@
         p.view_count AS viewCount,
         p.comment_count AS commentCount,
         p.favorite_count AS favoriteCount,
-        p.published_at AS publishedAt
+        p.like_count AS likeCount,
+        p.published_at AS publishedAt,
+        (p.is_ai_generated = 1) AS isAiGenerated,
+        p.gallery_images AS galleryImages,
+        (p.is_pinned = 1) AS pinned,
+        (p.is_featured = 1) AS featured
     </sql>
 
     <!-- 帖子详情查询的公共字段。 -->
@@ -58,9 +67,12 @@
         p.view_count AS viewCount,
         p.comment_count AS commentCount,
         p.favorite_count AS favoriteCount,
+        p.like_count AS likeCount,
         p.published_at AS publishedAt,
         p.create_time AS createTime,
-        p.update_time AS updateTime
+        p.update_time AS updateTime,
+        (p.is_ai_generated = 1) AS isAiGenerated,
+        p.gallery_images AS galleryImages
     </sql>
 
     <!-- 统计帖子总数。 -->
@@ -100,6 +112,9 @@
             view_count,
             comment_count,
             favorite_count,
+            like_count,
+            is_ai_generated,
+            gallery_images,
             published_at,
             create_time,
             update_time
@@ -117,6 +132,13 @@
         WHERE p.id = #{id}
           AND p.status = 1
         LIMIT 1
+    </select>
+
+    <select id="selectAllPublishedIds" resultType="long">
+        SELECT id
+        FROM community_post
+        WHERE status = 1
+        ORDER BY id ASC
     </select>
 
     <!-- 查询首页精选帖子。 -->
@@ -185,10 +207,12 @@
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO community_post (
             board_id, author_id, title, summary, content, badge, status,
-            is_featured, is_pinned, view_count, comment_count, favorite_count, published_at
+            is_featured, is_pinned, view_count, comment_count, favorite_count, like_count,
+            is_ai_generated, gallery_images, published_at
         ) VALUES (
             #{boardId}, #{authorId}, #{title}, #{summary}, #{content}, #{badge}, #{status},
-            #{featured}, #{pinned}, #{viewCount}, #{commentCount}, #{favoriteCount}, #{publishedAt}
+            #{featured}, #{pinned}, #{viewCount}, #{commentCount}, #{favoriteCount}, #{likeCount},
+            #{isAiGenerated}, #{galleryImages}, #{publishedAt}
         )
     </insert>
 
@@ -201,6 +225,8 @@
             summary = #{summary},
             content = #{content},
             badge = #{badge},
+            is_ai_generated = #{isAiGenerated},
+            gallery_images = #{galleryImages},
             update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
           AND author_id = #{authorId}
@@ -225,6 +251,7 @@
             view_count = view_count + 1,
             update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
+          AND status = 1
     </update>
 
     <!-- 增加帖子评论数。 -->
@@ -256,6 +283,99 @@
           AND status = 1
     </update>
 
+    <!-- 增加帖子点赞数。 -->
+    <update id="incrementLikeCount">
+        UPDATE community_post
+        SET
+            like_count = like_count + 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND status = 1
+    </update>
+
+    <!-- 减少帖子点赞数。 -->
+    <update id="decrementLikeCount">
+        UPDATE community_post
+        SET
+            like_count = CASE WHEN like_count &gt; 0 THEN like_count - 1 ELSE 0 END,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND status = 1
+    </update>
+
+    <!-- 查询指定版块帖子（支持排序和分页偏移）。 -->
+    <select id="selectPostsByBoardIdPaged" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostSummaryVO">
+        SELECT <include refid="SummaryColumns"/>
+        FROM community_post p
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE p.status = 1
+          AND p.board_id = #{boardId}
+        <choose>
+            <when test="sort == 'hot'">
+                ORDER BY (p.view_count * 1 + p.comment_count * 5 + p.favorite_count * 3 + p.like_count * 2) DESC,
+                         p.published_at DESC
+            </when>
+            <when test="sort == 'featured'">
+                ORDER BY p.is_featured DESC, p.is_pinned DESC, p.published_at DESC, p.id DESC
+            </when>
+            <otherwise>
+                ORDER BY p.is_pinned DESC, p.published_at DESC, p.id DESC
+            </otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 按徽标查询帖子列表（支持分页）。 -->
+    <select id="selectPostsByBadge" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostSummaryVO">
+        SELECT <include refid="SummaryColumns"/>
+        FROM community_post p
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE p.status = 1
+          AND (p.badge = #{badge} OR (NULLIF(p.badge, '') IS NULL AND b.tag_name = #{badge}))
+        ORDER BY p.is_pinned DESC, p.published_at DESC, p.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 查询个性化推荐帖子（来自用户活跃版块的热门帖子，排除自己发布的）。 -->
+    <select id="selectRecommendedPosts" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostSummaryVO">
+        SELECT <include refid="SummaryColumns"/>
+        FROM community_post p
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE p.status = 1
+          AND p.author_id != #{userId}
+          AND p.board_id IN (
+            SELECT DISTINCT cp.board_id
+            FROM community_post_like pl
+                     JOIN community_post cp ON cp.id = pl.post_id
+            WHERE pl.user_id = #{userId}
+              AND pl.status = 1
+            UNION
+            SELECT DISTINCT cp2.board_id
+            FROM community_post_favorite pf
+                     JOIN community_post cp2 ON cp2.id = pf.post_id
+            WHERE pf.user_id = #{userId}
+              AND pf.status = 1
+        )
+          AND p.published_at &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ORDER BY (p.view_count * 1 + p.comment_count * 5 + p.favorite_count * 3 + p.like_count * 2) DESC,
+                 p.published_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 统计指定版块在筛选条件下的帖子总数。 -->
+    <select id="countPostsByBoardId" resultType="long">
+        SELECT COUNT(1)
+        FROM community_post p
+        WHERE p.status = 1
+          AND p.board_id = #{boardId}
+        <if test="sort == 'featured'">
+            AND p.is_featured = 1
+        </if>
+    </select>
+
     <!-- 查询热门帖子（按浏览×1 + 评论×5 + 收藏×3 综合热度降序排列）。 -->
     <select id="selectHotPosts" resultType="org.kiteseven.kiteuniverse.pojo.vo.community.PostSummaryVO">
         SELECT <include refid="SummaryColumns"/>
@@ -264,9 +384,66 @@
                  LEFT JOIN user_account u ON u.id = p.author_id
         WHERE p.status = 1
           AND p.published_at &gt;= #{publishedSince}
-        ORDER BY (p.view_count * 1 + p.comment_count * 5 + p.favorite_count * 3) DESC,
+        ORDER BY (p.view_count * 1 + p.comment_count * 5 + p.favorite_count * 3 + p.like_count * 2) DESC,
                  p.published_at DESC
         LIMIT #{limit}
+    </select>
+
+    <!-- 供 Elasticsearch 全量索引使用：查询所有已发布帖子（含正文）。 -->
+    <select id="selectAllForIndex" resultType="org.kiteseven.kiteuniverse.pojo.dto.community.PostIndexDTO">
+        SELECT p.id,
+               p.board_id                                                              AS boardId,
+               b.name                                                                  AS boardName,
+               b.slug                                                                  AS boardSlug,
+               b.tag_name                                                              AS boardTagName,
+               p.author_id                                                             AS authorId,
+               COALESCE(NULLIF(u.nickname, ''), NULLIF(u.username, ''), '社区编辑部') AS authorName,
+               p.title,
+               p.summary,
+               p.content,
+               COALESCE(NULLIF(p.badge, ''), b.tag_name)                              AS badge,
+               p.status,
+               p.view_count                                                            AS viewCount,
+               p.comment_count                                                         AS commentCount,
+               p.favorite_count                                                        AS favoriteCount,
+               p.like_count                                                            AS likeCount,
+               (p.is_pinned = 1)                                                       AS pinned,
+               (p.is_featured = 1)                                                     AS featured,
+               (p.is_ai_generated = 1)                                                 AS aiGenerated,
+               p.published_at                                                          AS publishedAt
+        FROM community_post p
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE p.status = 1
+        ORDER BY p.id ASC
+    </select>
+
+    <!-- 按编号查询单条帖子索引数据（含正文）。 -->
+    <select id="selectForIndexById" resultType="org.kiteseven.kiteuniverse.pojo.dto.community.PostIndexDTO">
+        SELECT p.id,
+               p.board_id                                                              AS boardId,
+               b.name                                                                  AS boardName,
+               b.slug                                                                  AS boardSlug,
+               b.tag_name                                                              AS boardTagName,
+               p.author_id                                                             AS authorId,
+               COALESCE(NULLIF(u.nickname, ''), NULLIF(u.username, ''), '社区编辑部') AS authorName,
+               p.title,
+               p.summary,
+               p.content,
+               COALESCE(NULLIF(p.badge, ''), b.tag_name)                              AS badge,
+               p.status,
+               p.view_count                                                            AS viewCount,
+               p.comment_count                                                         AS commentCount,
+               p.favorite_count                                                        AS favoriteCount,
+               p.like_count                                                            AS likeCount,
+               (p.is_pinned = 1)                                                       AS pinned,
+               (p.is_featured = 1)                                                     AS featured,
+               (p.is_ai_generated = 1)                                                 AS aiGenerated,
+               p.published_at                                                          AS publishedAt
+        FROM community_post p
+                 LEFT JOIN community_board b ON b.id = p.board_id
+                 LEFT JOIN user_account u ON u.id = p.author_id
+        WHERE p.id = #{id}
     </select>
 
     <!-- 按关键字搜索帖子（匹配标题、摘要、徽标）。 -->

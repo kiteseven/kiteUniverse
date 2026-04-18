@@ -18,6 +18,7 @@ import org.kiteseven.kiteuniverse.pojo.vo.auth.SmsCodeSendVO;
 import org.kiteseven.kiteuniverse.service.AuthService;
 import org.kiteseven.kiteuniverse.support.auth.AuthCacheService;
 import org.kiteseven.kiteuniverse.support.auth.UserTokenService;
+import org.kiteseven.kiteuniverse.support.redis.CachePenetrationGuardService;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -54,6 +55,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthCacheService authCacheService;
     private final AuthSecurityProperties authSecurityProperties;
     private final Environment environment;
+    private final CachePenetrationGuardService cachePenetrationGuardService;
 
     public AuthServiceImpl(UserMapper userMapper,
                            UserInfoMapper userInfoMapper,
@@ -61,7 +63,8 @@ public class AuthServiceImpl implements AuthService {
                            UserTokenService userTokenService,
                            AuthCacheService authCacheService,
                            AuthSecurityProperties authSecurityProperties,
-                           Environment environment) {
+                           Environment environment,
+                           CachePenetrationGuardService cachePenetrationGuardService) {
         this.userMapper = userMapper;
         this.userInfoMapper = userInfoMapper;
         this.userSmsCodeMapper = userSmsCodeMapper;
@@ -69,6 +72,7 @@ public class AuthServiceImpl implements AuthService {
         this.authCacheService = authCacheService;
         this.authSecurityProperties = authSecurityProperties;
         this.environment = environment;
+        this.cachePenetrationGuardService = cachePenetrationGuardService;
     }
 
     /**
@@ -140,6 +144,7 @@ public class AuthServiceImpl implements AuthService {
         UserInfo userInfo = new UserInfo();
         userInfo.setUserId(user.getId());
         userInfoMapper.insert(userInfo);
+        cachePenetrationGuardService.addUserId(user.getId());
 
         return buildAuthResult(user);
     }
@@ -350,6 +355,7 @@ public class AuthServiceImpl implements AuthService {
         authUserVO.setPhone(user.getPhone());
         authUserVO.setAvatar(user.getAvatar());
         authUserVO.setStatus(user.getStatus());
+        authUserVO.setRole(user.getRole() != null ? user.getRole() : "user");
         return authUserVO;
     }
 

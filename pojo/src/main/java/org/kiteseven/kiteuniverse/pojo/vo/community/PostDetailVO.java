@@ -83,6 +83,31 @@ public class PostDetailVO {
     private Integer favoriteCount;
 
     /**
+     * 点赞数。
+     */
+    private Integer likeCount;
+
+    /**
+     * 是否包含 AI 生成内容。
+     */
+    private Boolean isAiGenerated;
+
+    /**
+     * 图集图片 URL 列表（JSON 数组字符串）。
+     */
+    private String galleryImages;
+
+    /**
+     * 是否置顶。
+     */
+    private Boolean pinned;
+
+    /**
+     * 是否精华。
+     */
+    private Boolean featured;
+
+    /**
      * 发布时间。
      */
     private LocalDateTime publishedAt;
@@ -215,6 +240,46 @@ public class PostDetailVO {
 
     public void setFavoriteCount(Integer favoriteCount) {
         this.favoriteCount = favoriteCount;
+    }
+
+    public Integer getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(Integer likeCount) {
+        this.likeCount = likeCount;
+    }
+
+    public Boolean getIsAiGenerated() {
+        return isAiGenerated;
+    }
+
+    public void setIsAiGenerated(Boolean isAiGenerated) {
+        this.isAiGenerated = isAiGenerated;
+    }
+
+    public String getGalleryImages() {
+        return galleryImages;
+    }
+
+    public void setGalleryImages(String galleryImages) {
+        this.galleryImages = galleryImages;
+    }
+
+    public Boolean getPinned() {
+        return pinned;
+    }
+
+    public void setPinned(Boolean pinned) {
+        this.pinned = pinned;
+    }
+
+    public Boolean getFeatured() {
+        return featured;
+    }
+
+    public void setFeatured(Boolean featured) {
+        this.featured = featured;
     }
 
     public LocalDateTime getPublishedAt() {

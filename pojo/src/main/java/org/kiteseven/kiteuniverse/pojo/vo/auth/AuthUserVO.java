@@ -41,6 +41,11 @@ public class AuthUserVO implements Serializable {
      */
     private Integer status;
 
+    /**
+     * User role: user / admin.
+     */
+    private String role;
+
     public Long getId() {
         return id;
     }
@@ -87,5 +92,13 @@ public class AuthUserVO implements Serializable {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

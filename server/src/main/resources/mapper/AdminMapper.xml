@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.AdminMapper">
+
+    <!-- ── 统计 ───────────────────────────────────────────────────── -->
+
+    <select id="countAllPosts" resultType="long">
+        SELECT COUNT(*) FROM community_post
+    </select>
+
+    <select id="countPostsCreatedSince" resultType="long">
+        SELECT COUNT(*) FROM community_post WHERE create_time >= #{since}
+    </select>
+
+    <select id="countAllComments" resultType="long">
+        SELECT COUNT(*) FROM community_comment
+    </select>
+
+    <select id="countBannedUsers" resultType="long">
+        SELECT COUNT(*) FROM user_account WHERE status = 0
+    </select>
+
+    <!-- ── 用户管理 ───────────────────────────────────────────────── -->
+
+    <select id="selectUsers" resultType="org.kiteseven.kiteuniverse.pojo.vo.admin.AdminUserVO">
+        SELECT
+            id, username, nickname, phone, avatar, status,
+            COALESCE(role, 'user') AS role,
+            mute_until AS muteUntil,
+            last_login_time AS lastLoginTime,
+            create_time AS createTime
+        FROM user_account
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (nickname LIKE CONCAT('%', #{keyword}, '%')
+                  OR username LIKE CONCAT('%', #{keyword}, '%')
+                  OR phone LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countUsers" resultType="long">
+        SELECT COUNT(*) FROM user_account
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (nickname LIKE CONCAT('%', #{keyword}, '%')
+                  OR username LIKE CONCAT('%', #{keyword}, '%')
+                  OR phone LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <update id="updateUserStatus">
+        UPDATE user_account SET status = #{status}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="updateUserMuteUntil">
+        UPDATE user_account SET mute_until = #{muteUntil}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="updateUserRole">
+        UPDATE user_account SET role = #{role}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <!-- ── 帖子管理 ───────────────────────────────────────────────── -->
+
+    <select id="selectPosts" resultType="org.kiteseven.kiteuniverse.pojo.vo.admin.AdminPostVO">
+        SELECT
+            p.id,
+            p.title,
+            p.author_id AS authorId,
+            COALESCE(NULLIF(u.nickname,''), NULLIF(u.username,''), '匿名') AS authorName,
+            b.name AS boardName,
+            p.status,
+            (p.is_pinned = 1) AS pinned,
+            (p.is_featured = 1) AS featured,
+            p.view_count AS viewCount,
+            p.comment_count AS commentCount,
+            p.like_count AS likeCount,
+            p.create_time AS createTime
+        FROM community_post p
+        LEFT JOIN user_account u ON u.id = p.author_id
+        LEFT JOIN community_board b ON b.id = p.board_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (p.title LIKE CONCAT('%', #{keyword}, '%')
+                  OR u.nickname LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">
+                AND p.status = #{status}
+            </if>
+        </where>
+        ORDER BY p.create_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPosts" resultType="long">
+        SELECT COUNT(*)
+        FROM community_post p
+        LEFT JOIN user_account u ON u.id = p.author_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (p.title LIKE CONCAT('%', #{keyword}, '%')
+                  OR u.nickname LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">
+                AND p.status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <update id="updatePostStatus">
+        UPDATE community_post SET status = #{status}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="updatePostPinned">
+        UPDATE community_post SET is_pinned = #{pinned}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="updatePostFeatured">
+        UPDATE community_post SET is_featured = #{featured}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <delete id="deletePost">
+        DELETE FROM community_post WHERE id = #{id}
+    </delete>
+
+    <!-- ── 评论管理 ───────────────────────────────────────────────── -->
+
+    <select id="selectComments" resultType="org.kiteseven.kiteuniverse.pojo.vo.admin.AdminCommentVO">
+        SELECT
+            c.id,
+            c.post_id AS postId,
+            p.title AS postTitle,
+            c.author_id AS authorId,
+            COALESCE(NULLIF(u.nickname,''), NULLIF(u.username,''), '匿名') AS authorName,
+            c.content,
+            c.status,
+            c.create_time AS createTime
+        FROM community_comment c
+        LEFT JOIN community_post p ON p.id = c.post_id
+        LEFT JOIN user_account u ON u.id = c.author_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (c.content LIKE CONCAT('%', #{keyword}, '%')
+                  OR u.nickname LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY c.create_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countComments" resultType="long">
+        SELECT COUNT(*)
+        FROM community_comment c
+        LEFT JOIN user_account u ON u.id = c.author_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (c.content LIKE CONCAT('%', #{keyword}, '%')
+                  OR u.nickname LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <delete id="deleteComment">
+        DELETE FROM community_comment WHERE id = #{id}
+    </delete>
+
+</mapper>

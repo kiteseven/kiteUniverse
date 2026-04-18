@@ -6,13 +6,23 @@ import {
   fetchPostComments,
   fetchPostDetail,
   fetchPostFavoriteState,
+  fetchPostLikeState,
+  fetchRelatedPosts,
+  likeCommunityComment,
+  likeCommunityPost,
   resolveAssetUrl,
   unfavoriteCommunityPost,
+  unlikeCommunityComment,
+  unlikeCommunityPost,
   type PostCommentData,
   type PostDetailData,
-  type PostFavoriteStateData
+  type PostFavoriteStateData,
+  type PostLikeStateData,
+  type PostSummaryData
 } from '../services/api';
 import { loadStoredToken, loadStoredUser } from '../services/session';
+
+declare const marked: any;
 
 /**
  * Post-detail page backed by the real post, favorite, delete, and comment APIs.
@@ -31,8 +41,18 @@ export const PostDetailPage = {
       deleting: false,
       detail: null as PostDetailData | null,
       favoriteState: null as PostFavoriteStateData | null,
+      likeState: null as PostLikeStateData | null,
       comments: [] as PostCommentData[],
-      commentContent: ''
+      commentContent: '',
+      likeSubmitting: false,
+      commentLikeSubmitting: {} as Record<number, boolean>,
+      lightboxUrl: null as string | null,
+      replyToCommentId: null as number | null,
+      replyToName: '' as string,
+      replyContent: '' as string,
+      replySubmitting: false,
+      replyError: '' as string,
+      relatedPosts: [] as PostSummaryData[]
     };
   },
   watch: {
@@ -62,21 +82,39 @@ export const PostDetailPage = {
 
       try {
         const token = loadStoredToken();
-        const [detail, comments, favoriteState] = await Promise.all([
+        const [detail, comments, favoriteState, likeState] = await Promise.all([
           fetchPostDetail(postId),
-          fetchPostComments(postId),
-          token ? this.loadFavoriteStateOrNull(token, postId) : Promise.resolve(null)
+          fetchPostComments(postId, token || ''),
+          token ? this.loadFavoriteStateOrNull(token, postId) : Promise.resolve(null),
+          token ? this.loadLikeStateOrNull(token, postId) : Promise.resolve(null)
         ]);
         this.detail = detail;
         this.comments = comments;
         this.favoriteState = favoriteState;
+        this.likeState = likeState;
         if (favoriteState) {
           this.detail.favoriteCount = favoriteState.favoriteCount;
         }
+        if (likeState) {
+          this.detail.likeCount = likeState.likeCount;
+        }
+        // load related posts in background — non-blocking
+        void this.loadRelatedPosts(postId);
       } catch (error) {
         this.errorMessage = error instanceof Error ? error.message : '帖子内容加载失败，请稍后重试。';
       } finally {
         this.loading = false;
+      }
+    },
+
+    /**
+     * Loads ES more_like_this related posts (non-critical, fails silently).
+     */
+    async loadRelatedPosts(this: any, postId: number) {
+      try {
+        this.relatedPosts = await fetchRelatedPosts(postId, 5);
+      } catch {
+        this.relatedPosts = [];
       }
     },
 
@@ -86,6 +124,20 @@ export const PostDetailPage = {
     async loadFavoriteStateOrNull(this: any, token: string, postId: number) {
       try {
         return await fetchPostFavoriteState(token, postId);
+      } catch (error) {
+        if (error instanceof ApiError && error.code === 401) {
+          return null;
+        }
+        throw error;
+      }
+    },
+
+    /**
+     * Loads the like state without breaking the page when the session expired.
+     */
+    async loadLikeStateOrNull(this: any, token: string, postId: number) {
+      try {
+        return await fetchPostLikeState(token, postId);
       } catch (error) {
         if (error instanceof ApiError && error.code === 401) {
           return null;
@@ -177,6 +229,90 @@ export const PostDetailPage = {
     },
 
     /**
+     * Likes or unlikes the current post.
+     */
+    async toggleLike(this: any) {
+      const postId = this.resolvePostId();
+      const token = loadStoredToken();
+
+      if (!token) {
+        this.redirectToLogin();
+        return;
+      }
+
+      this.likeSubmitting = true;
+      this.actionError = '';
+      this.actionMessage = '';
+
+      try {
+        const nextState = this.likeState?.liked
+          ? await unlikeCommunityPost(token, postId)
+          : await likeCommunityPost(token, postId);
+        this.likeState = nextState;
+        if (this.detail) {
+          this.detail.likeCount = nextState.likeCount;
+        }
+        this.actionMessage = nextState.liked ? '已点赞。' : '已取消点赞。';
+      } catch (error) {
+        if (error instanceof ApiError && error.code === 401) {
+          this.redirectToLogin();
+          return;
+        }
+        this.actionError = error instanceof Error ? error.message : '点赞状态更新失败，请稍后重试。';
+      } finally {
+        this.likeSubmitting = false;
+      }
+    },
+
+    /**
+     * Likes or unlikes a comment.
+     */
+    async toggleCommentLike(this: any, commentId: number) {
+      const postId = this.resolvePostId();
+      const token = loadStoredToken();
+
+      if (!token) {
+        this.redirectToLogin();
+        return;
+      }
+
+      const targetComment = this.comments.find((c: PostCommentData) => c.id === commentId);
+      const wasLiked = Boolean(targetComment?.liked);
+      const prevLikeCount = Number(targetComment?.likeCount || 0);
+
+      // Optimistic update for immediate feedback
+      this.comments = this.comments.map((c: PostCommentData) =>
+        c.id === commentId
+          ? { ...c, liked: !wasLiked, likeCount: wasLiked ? Math.max(0, prevLikeCount - 1) : prevLikeCount + 1 }
+          : c
+      );
+
+      this.commentLikeSubmitting = { ...this.commentLikeSubmitting, [commentId]: true };
+
+      try {
+        const result = wasLiked
+          ? await unlikeCommunityComment(token, postId, commentId)
+          : await likeCommunityComment(token, postId, commentId);
+        // Confirm liked state from backend; keep optimistic likeCount
+        this.comments = this.comments.map((c: PostCommentData) =>
+          c.id === commentId ? { ...c, liked: result.liked } : c
+        );
+      } catch (error) {
+        // Revert optimistic update on failure
+        this.comments = this.comments.map((c: PostCommentData) =>
+          c.id === commentId ? { ...c, liked: wasLiked, likeCount: prevLikeCount } : c
+        );
+        if (error instanceof ApiError && error.code === 401) {
+          this.redirectToLogin();
+          return;
+        }
+        this.actionError = error instanceof Error ? error.message : '评论点赞失败，请稍后重试。';
+      } finally {
+        this.commentLikeSubmitting = { ...this.commentLikeSubmitting, [commentId]: false };
+      }
+    },
+
+    /**
      * Deletes the current post after a confirmation dialog.
      */
     async deletePost(this: any) {
@@ -227,6 +363,93 @@ export const PostDetailPage = {
           boardId: String(this.detail.boardId)
         }
       });
+    },
+
+    /**
+     * Shares the current post using the Web Share API if available, else copies the URL.
+     */
+    async sharePost(this: any) {
+      const url = window.location.href;
+      const title = this.detail?.title || 'Kite Universe';
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, url });
+          return;
+        } catch {
+          // User cancelled or API failed — fall through to copy
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        this.actionMessage = '链接已复制到剪贴板';
+      } catch {
+        this.actionError = '链接复制失败，请手动复制地址栏链接';
+      }
+    },
+
+    /**
+     * Opens the inline reply form targeting a specific comment.
+     */
+    startReply(this: any, comment: PostCommentData) {
+      this.replyToCommentId = comment.id;
+      this.replyToName = comment.authorName;
+      this.replyContent = '';
+      this.replyError = '';
+    },
+
+    /**
+     * Cancels the active inline reply.
+     */
+    cancelReply(this: any) {
+      this.replyToCommentId = null;
+      this.replyToName = '';
+      this.replyContent = '';
+      this.replyError = '';
+    },
+
+    /**
+     * Submits a nested reply comment to the backend.
+     */
+    async submitReply(this: any) {
+      const postId = this.resolvePostId();
+      const token = loadStoredToken();
+      const normalizedContent = this.replyContent.trim();
+
+      if (!token) {
+        this.redirectToLogin();
+        return;
+      }
+      if (!normalizedContent) {
+        this.replyError = '回复内容不能为空。';
+        return;
+      }
+      if (normalizedContent.length > 1000) {
+        this.replyError = '回复内容请控制在 1000 个字以内。';
+        return;
+      }
+
+      this.replySubmitting = true;
+      this.replyError = '';
+
+      try {
+        const created = await createCommunityPostComment(token, postId, {
+          content: normalizedContent,
+          parentId: this.replyToCommentId
+        });
+        this.comments = [...this.comments, created];
+        this.cancelReply();
+        if (this.detail) {
+          this.detail.commentCount = Number(this.detail.commentCount || 0) + 1;
+        }
+      } catch (error) {
+        if (error instanceof ApiError && error.code === 401) {
+          this.redirectToLogin();
+          return;
+        }
+        this.replyError = error instanceof Error ? error.message : '回复发布失败，请稍后重试。';
+      } finally {
+        this.replySubmitting = false;
+      }
     },
 
     /**
@@ -298,6 +521,62 @@ export const PostDetailPage = {
     },
 
     /**
+     * Renders Markdown content to HTML for display in the post body.
+     */
+    renderMarkdown(this: any, content: string | null) {
+      if (!content) {
+        return '';
+      }
+      if (typeof marked === 'undefined') {
+        return content.replace(/\n/g, '<br>');
+      }
+      return marked.parse(content);
+    },
+
+    /**
+     * Parses the gallery images JSON string into a URL array.
+     */
+    getGalleryImages(this: any): string[] {
+      const raw = this.detail?.galleryImages;
+      if (!raw) {
+        return [];
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    },
+
+    /**
+     * Opens the lightbox with the specified image URL.
+     */
+    openLightbox(this: any, url: string) {
+      this.lightboxUrl = url;
+    },
+
+    /**
+     * Closes the lightbox.
+     */
+    closeLightbox(this: any) {
+      this.lightboxUrl = null;
+    },
+
+    /**
+     * Handles click events on the markdown body to open image lightbox.
+     */
+    onPostBodyClick(this: any, event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'IMG') {
+        const src = (target as HTMLImageElement).src;
+        if (src) {
+          this.openLightbox(src);
+        }
+      }
+    },
+
+    /**
      * Formats timestamps into user-friendly text.
      */
     formatDateTime(this: any, value: string | null) {
@@ -344,16 +623,30 @@ export const PostDetailPage = {
       <template v-else-if="detail">
         <section class="detail-hero detail-hero--post">
           <div class="detail-hero__main">
-            <span class="eyebrow">{{ detail.badge || detail.boardTagName }}</span>
+            <div class="detail-hero__badges">
+              <span class="eyebrow">{{ detail.badge || detail.boardTagName }}</span>
+              <span v-if="detail.pinned" class="post-badge post-badge--pinned">置顶</span>
+              <span v-if="detail.featured" class="post-badge post-badge--featured">精华</span>
+              <span v-if="detail.isAiGenerated" class="ai-badge" title="本文包含 AI 生成内容">AI</span>
+            </div>
             <h1>{{ detail.title }}</h1>
             <p>{{ detail.summary }}</p>
             <div class="detail-meta">
               <span>版区：{{ detail.boardName }}</span>
-              <span>作者：{{ detail.authorName }}</span>
+              <span>作者：<router-link v-if="detail.authorId" :to="'/users/' + detail.authorId">{{ detail.authorName }}</router-link><template v-else>{{ detail.authorName }}</template></span>
               <span>发布时间：{{ formatDateTime(detail.publishedAt) }}</span>
             </div>
             <div class="hero__actions">
               <router-link class="button button--ghost" :to="'/boards/' + detail.boardId">回到版区</router-link>
+              <button
+                class="button"
+                :class="likeState?.liked ? 'button--primary' : 'button--ghost'"
+                type="button"
+                :disabled="likeSubmitting || !hasToken()"
+                @click="toggleLike"
+              >
+                {{ likeSubmitting ? '处理中...' : (likeState?.liked ? '已赞' : '点赞') }}
+              </button>
               <button
                 class="button"
                 :class="favoriteState?.favorited ? 'button--primary' : 'button--ghost'"
@@ -362,6 +655,13 @@ export const PostDetailPage = {
                 @click="toggleFavorite"
               >
                 {{ favoriteSubmitting ? '处理中...' : getFavoriteActionLabel() }}
+              </button>
+              <button
+                class="button button--ghost"
+                type="button"
+                @click="sharePost"
+              >
+                分享
               </button>
               <router-link
                 class="button button--ghost"
@@ -407,6 +707,11 @@ export const PostDetailPage = {
               <strong>{{ getFavoriteCount() }}</strong>
               <p>值得回看的内容先留个标记，后面再翻也方便。</p>
             </article>
+            <article class="detail-stat-card">
+              <span>点赞</span>
+              <strong>{{ likeState ? likeState.likeCount : (detail?.likeCount ?? 0) }}</strong>
+              <p>觉得不错就点个赞，让更多人看到优质内容。</p>
+            </article>
           </div>
         </section>
 
@@ -419,7 +724,25 @@ export const PostDetailPage = {
                   <h2>正文内容</h2>
                 </div>
               </div>
-              <div class="post-article__body">{{ detail.content }}</div>
+              <div
+                class="post-article__body post-markdown-body"
+                v-html="renderMarkdown(detail.content)"
+                @click="onPostBodyClick"
+              ></div>
+
+              <div v-if="getGalleryImages().length" class="post-gallery">
+                <h3 class="post-gallery__title">图集</h3>
+                <div class="post-gallery__grid">
+                  <img
+                    v-for="(img, idx) in getGalleryImages()"
+                    :key="idx"
+                    :src="img"
+                    :alt="'图集图片 ' + (idx + 1)"
+                    class="post-gallery__img"
+                    @click="openLightbox(img)"
+                  />
+                </div>
+              </div>
             </article>
 
             <section class="panel comment-panel">
@@ -465,7 +788,12 @@ export const PostDetailPage = {
               </div>
 
               <div v-else class="comment-list">
-                <article v-for="comment in comments" :key="comment.id" class="comment-card">
+                <article
+                  v-for="comment in comments"
+                  :key="comment.id"
+                  class="comment-card"
+                  :class="comment.parentId ? 'comment-card--reply' : ''"
+                >
                   <div class="comment-card__avatar">
                     <img
                       v-if="comment.authorAvatar"
@@ -476,10 +804,28 @@ export const PostDetailPage = {
                   </div>
                   <div class="comment-card__body">
                     <div class="comment-card__meta">
-                      <strong>{{ comment.authorName }}</strong>
+                      <strong><router-link v-if="comment.authorId" :to="'/users/' + comment.authorId" class="comment-author-link">{{ comment.authorName }}</router-link><template v-else>{{ comment.authorName }}</template></strong>
+                      <span v-if="comment.replyToName" class="comment-reply-to">回复 {{ comment.replyToName }}</span>
                       <span>{{ formatDateTime(comment.createTime) }}</span>
                     </div>
                     <p>{{ comment.content }}</p>
+                    <div class="comment-card__actions">
+                      <button class="button button--small" :class="comment.liked ? 'button--primary' : 'button--ghost'" type="button" :disabled="commentLikeSubmitting[comment.id]" @click="toggleCommentLike(comment.id)">{{ comment.liked ? '已赞' : '赞' }} {{ comment.likeCount || 0 }}</button>
+                      <button v-if="hasToken()" class="button button--small button--ghost" type="button" @click="startReply(comment)">回复</button>
+                    </div>
+                    <div v-if="replyToCommentId === comment.id" class="comment-reply-form">
+                      <textarea
+                        v-model="replyContent"
+                        rows="3"
+                        :placeholder="'回复 ' + replyToName + '...'"
+                        class="comment-reply-form__input"
+                      ></textarea>
+                      <p v-if="replyError" class="auth-feedback auth-feedback--error">{{ replyError }}</p>
+                      <div class="comment-reply-form__actions">
+                        <button class="button button--primary button--small" type="button" :disabled="replySubmitting" @click="submitReply">{{ replySubmitting ? '发布中...' : '发布回复' }}</button>
+                        <button class="button button--ghost button--small" type="button" @click="cancelReply">取消</button>
+                      </div>
+                    </div>
                   </div>
                 </article>
               </div>
@@ -533,9 +879,34 @@ export const PostDetailPage = {
                 <p>如果你也是作者，可以继续编辑内容，让这篇帖子保持最新状态。</p>
               </div>
             </section>
+
+            <section v-if="relatedPosts.length" class="panel soft-panel">
+              <div class="panel__header">
+                <div>
+                  <span class="panel__kicker">相关推荐</span>
+                  <h2>你可能也感兴趣</h2>
+                </div>
+              </div>
+              <div class="notice-list" style="gap:8px;">
+                <router-link
+                  v-for="rp in relatedPosts"
+                  :key="rp.id"
+                  :to="'/posts/' + rp.id"
+                  class="sidebar-link-card"
+                >
+                  <strong>{{ rp.title }}</strong>
+                  <span>{{ rp.boardName }} · {{ rp.authorName }}</span>
+                </router-link>
+              </div>
+            </section>
           </aside>
         </section>
       </template>
+
+      <div v-if="lightboxUrl" class="lightbox" @click.self="closeLightbox">
+        <button class="lightbox__close" type="button" @click="closeLightbox" aria-label="关闭图片预览">✕</button>
+        <img class="lightbox__img" :src="lightboxUrl" alt="图片预览" />
+      </div>
     </main>
   `
 };

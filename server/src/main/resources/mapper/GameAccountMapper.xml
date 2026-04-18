@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.GameAccountMapper">
+
+    <resultMap id="GameAccountResultMap" type="org.kiteseven.kiteuniverse.pojo.entity.GameAccount">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="game_uid" property="gameUid"/>
+        <result column="server_name" property="serverName"/>
+        <result column="in_game_name" property="inGameName"/>
+        <result column="account_level" property="accountLevel"/>
+        <result column="status" property="status"/>
+        <result column="bind_time" property="bindTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectByUserId" resultMap="GameAccountResultMap">
+        SELECT * FROM game_account WHERE user_id = #{userId} AND status = 1 ORDER BY bind_time DESC
+    </select>
+
+    <select id="selectByIdAndUserId" resultMap="GameAccountResultMap">
+        SELECT * FROM game_account WHERE id = #{id} AND user_id = #{userId} AND status = 1
+    </select>
+
+    <select id="selectByUserIdAndGameUid" resultMap="GameAccountResultMap">
+        SELECT * FROM game_account WHERE user_id = #{userId} AND game_uid = #{gameUid} AND status = 1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO game_account (user_id, game_uid, server_name, in_game_name, account_level, status, bind_time, update_time)
+        VALUES (#{userId}, #{gameUid}, #{serverName}, #{inGameName}, #{accountLevel}, 1, NOW(), NOW())
+    </insert>
+
+    <update id="updateByIdAndUserId">
+        UPDATE game_account
+        SET server_name = #{serverName},
+            in_game_name = #{inGameName},
+            account_level = #{accountLevel},
+            update_time = NOW()
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <update id="deleteByIdAndUserId">
+        UPDATE game_account SET status = 0, update_time = NOW()
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+</mapper>

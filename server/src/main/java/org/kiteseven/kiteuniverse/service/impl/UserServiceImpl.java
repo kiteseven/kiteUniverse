@@ -2,6 +2,7 @@ package org.kiteseven.kiteuniverse.service.impl;
 
 import org.kiteseven.kiteuniverse.common.enums.ResultCode;
 import org.kiteseven.kiteuniverse.common.exception.BusinessException;
+import org.kiteseven.kiteuniverse.mapper.UserFollowMapper;
 import org.kiteseven.kiteuniverse.mapper.UserInfoMapper;
 import org.kiteseven.kiteuniverse.mapper.UserMapper;
 import org.kiteseven.kiteuniverse.pojo.dto.user.UserInfoUpdateDTO;
@@ -10,36 +11,35 @@ import org.kiteseven.kiteuniverse.pojo.entity.User;
 import org.kiteseven.kiteuniverse.pojo.entity.UserInfo;
 import org.kiteseven.kiteuniverse.pojo.vo.user.UserDetailVO;
 import org.kiteseven.kiteuniverse.service.UserService;
+import org.kiteseven.kiteuniverse.support.redis.CachePenetrationGuardService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /**
- * Default user service implementation for account registration and personal-center updates.
+ * Default user service implementation for registration and profile maintenance.
  */
 @Service
 public class UserServiceImpl implements UserService {
 
-    /**
-     * Password encoder reused by the legacy username registration flow.
-     */
     private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 
     private final UserMapper userMapper;
     private final UserInfoMapper userInfoMapper;
+    private final UserFollowMapper userFollowMapper;
+    private final CachePenetrationGuardService cachePenetrationGuardService;
 
-    public UserServiceImpl(UserMapper userMapper, UserInfoMapper userInfoMapper) {
+    public UserServiceImpl(UserMapper userMapper,
+                           UserInfoMapper userInfoMapper,
+                           UserFollowMapper userFollowMapper,
+                           CachePenetrationGuardService cachePenetrationGuardService) {
         this.userMapper = userMapper;
         this.userInfoMapper = userInfoMapper;
+        this.userFollowMapper = userFollowMapper;
+        this.cachePenetrationGuardService = cachePenetrationGuardService;
     }
 
-    /**
-     * Registers a user account and creates an empty profile row.
-     *
-     * @param userRegisterDTO request body
-     * @return created user id
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long registerUser(UserRegisterDTO userRegisterDTO) {
@@ -61,15 +61,10 @@ public class UserServiceImpl implements UserService {
         UserInfo userInfo = new UserInfo();
         userInfo.setUserId(user.getId());
         userInfoMapper.insert(userInfo);
+        cachePenetrationGuardService.addUserId(user.getId());
         return user.getId();
     }
 
-    /**
-     * Loads the combined account and profile detail data.
-     *
-     * @param userId user id
-     * @return user detail
-     */
     @Override
     public UserDetailVO getUserDetail(Long userId) {
         User user = getExistingUser(userId);
@@ -99,20 +94,17 @@ public class UserServiceImpl implements UserService {
             userDetailVO.setWebsite(userInfo.getWebsite());
             userDetailVO.setBackgroundImage(userInfo.getBackgroundImage());
         }
+
+        userDetailVO.setFollowerCount(userFollowMapper.countFollowers(userId));
+        userDetailVO.setFollowingCount(userFollowMapper.countFollowing(userId));
         return userDetailVO;
     }
 
-    /**
-     * Updates editable display fields on the account and profile tables.
-     *
-     * @param userId user id
-     * @param userInfoUpdateDTO request body
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateUserInfo(Long userId, UserInfoUpdateDTO userInfoUpdateDTO) {
         if (userInfoUpdateDTO == null) {
-            throw new BusinessException(ResultCode.BAD_REQUEST, "更新参数不能为空");
+            throw new BusinessException(ResultCode.BAD_REQUEST, "Update payload must not be null");
         }
 
         User user = getExistingUser(userId);
@@ -132,12 +124,6 @@ public class UserServiceImpl implements UserService {
         userInfoMapper.updateByUserId(userInfo);
     }
 
-    /**
-     * Updates the avatar path on the account table.
-     *
-     * @param userId user id
-     * @param avatar avatar public path
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateUserAvatar(Long userId, String avatar) {
@@ -146,65 +132,47 @@ public class UserServiceImpl implements UserService {
         userMapper.updateProfileById(user);
     }
 
-    /**
-     * Validates the legacy registration request.
-     *
-     * @param userRegisterDTO request body
-     */
     private void validateRegisterParam(UserRegisterDTO userRegisterDTO) {
         if (userRegisterDTO == null) {
-            throw new BusinessException(ResultCode.BAD_REQUEST, "注册参数不能为空");
+            throw new BusinessException(ResultCode.BAD_REQUEST, "Register payload must not be null");
         }
         if (!StringUtils.hasText(userRegisterDTO.getUsername())) {
-            throw new BusinessException(ResultCode.BAD_REQUEST, "用户名不能为空");
+            throw new BusinessException(ResultCode.BAD_REQUEST, "Username must not be blank");
         }
         if (!StringUtils.hasText(userRegisterDTO.getPassword())) {
-            throw new BusinessException(ResultCode.BAD_REQUEST, "密码不能为空");
+            throw new BusinessException(ResultCode.BAD_REQUEST, "Password must not be blank");
         }
     }
 
-    /**
-     * Ensures username, email, and phone stay unique.
-     *
-     * @param userRegisterDTO request body
-     */
     private void checkDuplicateUser(UserRegisterDTO userRegisterDTO) {
         if (userMapper.selectByUsername(userRegisterDTO.getUsername().trim()) != null) {
-            throw new BusinessException(ResultCode.BAD_REQUEST, "用户名已存在");
+            throw new BusinessException(ResultCode.BAD_REQUEST, "Username already exists");
         }
         if (StringUtils.hasText(userRegisterDTO.getEmail())
                 && userMapper.selectByEmail(userRegisterDTO.getEmail().trim()) != null) {
-            throw new BusinessException(ResultCode.BAD_REQUEST, "邮箱已存在");
+            throw new BusinessException(ResultCode.BAD_REQUEST, "Email already exists");
         }
         if (StringUtils.hasText(userRegisterDTO.getPhone())
                 && userMapper.selectByPhone(userRegisterDTO.getPhone().trim()) != null) {
-            throw new BusinessException(ResultCode.BAD_REQUEST, "手机号已存在");
+            throw new BusinessException(ResultCode.BAD_REQUEST, "Phone number already exists");
         }
     }
 
-    /**
-     * Loads the existing account row or throws a user-not-found error.
-     *
-     * @param userId user id
-     * @return user entity
-     */
     private User getExistingUser(Long userId) {
         if (userId == null) {
-            throw new BusinessException(ResultCode.BAD_REQUEST, "用户编号不能为空");
+            throw new BusinessException(ResultCode.BAD_REQUEST, "User id is required");
         }
+        if (userId > 0L && !cachePenetrationGuardService.mightContainUserId(userId)) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "User does not exist");
+        }
+
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BusinessException(ResultCode.NOT_FOUND, "用户不存在");
+            throw new BusinessException(ResultCode.NOT_FOUND, "User does not exist");
         }
         return user;
     }
 
-    /**
-     * Merges editable account fields and only changes values explicitly submitted by the client.
-     *
-     * @param user account entity
-     * @param userInfoUpdateDTO request body
-     */
     private void mergeUserBaseInfo(User user, UserInfoUpdateDTO userInfoUpdateDTO) {
         if (userInfoUpdateDTO.getNickname() != null) {
             user.setNickname(normalizeText(userInfoUpdateDTO.getNickname()));
@@ -217,12 +185,6 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    /**
-     * Merges editable profile fields and only changes values explicitly submitted by the client.
-     *
-     * @param userInfo profile entity
-     * @param userInfoUpdateDTO request body
-     */
     private void mergeUserInfo(UserInfo userInfo, UserInfoUpdateDTO userInfoUpdateDTO) {
         if (userInfoUpdateDTO.getRealName() != null) {
             userInfo.setRealName(normalizeText(userInfoUpdateDTO.getRealName()));
@@ -253,12 +215,6 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    /**
-     * Normalizes optional text fields and converts blank content to null.
-     *
-     * @param value raw text
-     * @return normalized value
-     */
     private String normalizeText(String value) {
         if (!StringUtils.hasText(value)) {
             return null;

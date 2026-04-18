@@ -1,7 +1,5 @@
 package org.kiteseven.kiteuniverse.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.kiteseven.kiteuniverse.config.properties.CommunityContentProperties;
 import org.kiteseven.kiteuniverse.mapper.CommunityBoardMapper;
 import org.kiteseven.kiteuniverse.mapper.UserMapper;
 import org.kiteseven.kiteuniverse.pojo.vo.community.BoardSummaryVO;
@@ -10,15 +8,11 @@ import org.kiteseven.kiteuniverse.pojo.vo.content.BoardsPageVO;
 import org.kiteseven.kiteuniverse.pojo.vo.content.HomePageVO;
 import org.kiteseven.kiteuniverse.service.CommunityContentService;
 import org.kiteseven.kiteuniverse.service.CommunityQueryService;
+import org.kiteseven.kiteuniverse.support.cache.TwoLevelCache;
 import org.kiteseven.kiteuniverse.support.community.CommunityContentCacheKeys;
-import org.kiteseven.kiteuniverse.support.redis.RedisKeyManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -26,102 +20,58 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Builds the cached homepage and boards-page payloads from real community data.
+ * Builds the homepage and boards-page payloads from live community data.
  */
 @Service
 public class CommunityContentServiceImpl implements CommunityContentService {
-
-    /**
-     * Logger used for graceful cache degradation when Redis is unavailable.
-     */
-    private static final Logger log = LoggerFactory.getLogger(CommunityContentServiceImpl.class);
 
     /**
      * Formatter used by the frontend cards for day-level timestamps.
      */
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("M月d日");
 
-    private final StringRedisTemplate stringRedisTemplate;
-    private final ObjectMapper objectMapper;
-    private final CommunityContentProperties communityContentProperties;
     private final CommunityQueryService communityQueryService;
     private final CommunityBoardMapper communityBoardMapper;
     private final UserMapper userMapper;
-    private final RedisKeyManager redisKeyManager;
 
-    public CommunityContentServiceImpl(StringRedisTemplate stringRedisTemplate,
-                                       ObjectMapper objectMapper,
-                                       CommunityContentProperties communityContentProperties,
-                                       CommunityQueryService communityQueryService,
+    public CommunityContentServiceImpl(CommunityQueryService communityQueryService,
                                        CommunityBoardMapper communityBoardMapper,
-                                       UserMapper userMapper,
-                                       RedisKeyManager redisKeyManager) {
-        this.stringRedisTemplate = stringRedisTemplate;
-        this.objectMapper = objectMapper;
-        this.communityContentProperties = communityContentProperties;
+                                       UserMapper userMapper) {
         this.communityQueryService = communityQueryService;
         this.communityBoardMapper = communityBoardMapper;
         this.userMapper = userMapper;
-        this.redisKeyManager = redisKeyManager;
     }
 
     /**
-     * Loads the homepage payload, preferring Redis cache first.
+     * Loads the homepage payload through the two-level cache layer.
      *
      * @return homepage payload
      */
     @Override
+    @TwoLevelCache(
+            key = CommunityContentCacheKeys.HOME_PAGE,
+            localTtlExpression = "@communityContentProperties.homeLocalCacheSeconds",
+            redisTtlExpression = "@communityContentProperties.homeCacheSeconds"
+    )
     public HomePageVO getHomePage() {
-        HomePageVO cachedPayload = readCachedPayload(getHomePageCacheKey(), HomePageVO.class);
-        if (cachedPayload != null) {
-            return cachedPayload;
-        }
-
-        HomePageVO homePage = buildHomePage();
-        cachePayload(getHomePageCacheKey(), homePage, communityContentProperties.getHomeCacheSeconds());
-        return homePage;
+        return buildHomePage();
     }
 
     /**
-     * Loads the boards-page payload, preferring Redis cache first.
+     * Loads the boards-page payload through the two-level cache layer.
      *
      * @return boards-page payload
      */
     @Override
+    @TwoLevelCache(
+            key = CommunityContentCacheKeys.BOARDS_PAGE,
+            localTtlExpression = "@communityContentProperties.boardsLocalCacheSeconds",
+            redisTtlExpression = "@communityContentProperties.boardsCacheSeconds"
+    )
     public BoardsPageVO getBoardsPage() {
-        BoardsPageVO cachedPayload = readCachedPayload(getBoardsPageCacheKey(), BoardsPageVO.class);
-        if (cachedPayload != null) {
-            return cachedPayload;
-        }
-
-        BoardsPageVO boardsPage = buildBoardsPage();
-        cachePayload(getBoardsPageCacheKey(), boardsPage, communityContentProperties.getBoardsCacheSeconds());
-        return boardsPage;
+        return buildBoardsPage();
     }
 
-    /**
-     * Returns the prefixed Redis key used for homepage content.
-     *
-     * @return homepage Redis key
-     */
-    private String getHomePageCacheKey() {
-        return redisKeyManager.buildKey(CommunityContentCacheKeys.HOME_PAGE);
-    }
-
-    /**
-     * Returns the prefixed Redis key used for boards-page content.
-     *
-     * @return boards-page Redis key
-     */
-    private String getBoardsPageCacheKey() {
-        return redisKeyManager.buildKey(CommunityContentCacheKeys.BOARDS_PAGE);
-    }
-
-    /**
-     * Builds the homepage payload from real board and post tables.
-     *
-     * @return homepage payload
-     */
     private HomePageVO buildHomePage() {
         CommunitySnapshot snapshot = buildSnapshot();
         List<PostSummaryVO> featuredPosts = communityQueryService.listFeaturedPosts(3);
@@ -146,11 +96,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return homePage;
     }
 
-    /**
-     * Builds the boards-page payload from real board summaries.
-     *
-     * @return boards-page payload
-     */
     private BoardsPageVO buildBoardsPage() {
         CommunitySnapshot snapshot = buildSnapshot();
         List<BoardSummaryVO> boardSummaries = communityQueryService.listBoardSummaries();
@@ -173,13 +118,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return boardsPage;
     }
 
-    /**
-     * Builds the homepage hero copy.
-     *
-     * @param snapshot current community snapshot
-     * @param featuredPosts featured posts
-     * @return hero payload
-     */
     private HomePageVO.Hero buildHomeHero(CommunitySnapshot snapshot, List<PostSummaryVO> featuredPosts) {
         PostSummaryVO leadPost = featuredPosts.isEmpty() ? null : featuredPosts.get(0);
 
@@ -203,12 +141,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return hero;
     }
 
-    /**
-     * Builds the boards-page hero copy.
-     *
-     * @param snapshot current community snapshot
-     * @return hero payload
-     */
     private BoardsPageVO.Hero buildBoardsHero(CommunitySnapshot snapshot) {
         BoardsPageVO.Hero hero = new BoardsPageVO.Hero();
         hero.setEyebrow("版区导航");
@@ -221,12 +153,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return hero;
     }
 
-    /**
-     * Maps featured posts to homepage topic cards.
-     *
-     * @param featuredPosts featured posts
-     * @return topic cards
-     */
     private List<HomePageVO.TopicCard> mapFeaturedTopics(List<PostSummaryVO> featuredPosts) {
         List<HomePageVO.TopicCard> topicCards = new ArrayList<>();
         for (PostSummaryVO featuredPost : featuredPosts) {
@@ -249,12 +175,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return topicCards;
     }
 
-    /**
-     * Maps latest posts to timeline items.
-     *
-     * @param latestPosts latest posts
-     * @return timeline items
-     */
     private List<HomePageVO.TimelineItem> mapTimeline(List<PostSummaryVO> latestPosts) {
         List<HomePageVO.TimelineItem> timelineItems = new ArrayList<>();
         for (PostSummaryVO latestPost : latestPosts) {
@@ -268,12 +188,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return timelineItems;
     }
 
-    /**
-     * Builds homepage quick links from real board summaries.
-     *
-     * @param boardSummaries board summaries
-     * @return quick sections
-     */
     private List<HomePageVO.QuickSection> buildQuickSections(List<BoardSummaryVO> boardSummaries) {
         List<HomePageVO.QuickLink> boardLinks = new ArrayList<>();
         for (BoardSummaryVO boardSummary : boardSummaries) {
@@ -291,12 +205,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return quickSections;
     }
 
-    /**
-     * Maps board summaries to boards-page cards.
-     *
-     * @param boardSummaries board summaries
-     * @return board cards
-     */
     private List<BoardsPageVO.BoardCard> mapBoardGroups(List<BoardSummaryVO> boardSummaries) {
         List<BoardsPageVO.BoardCard> boardCards = new ArrayList<>();
         for (BoardSummaryVO boardSummary : boardSummaries) {
@@ -317,11 +225,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return boardCards;
     }
 
-    /**
-     * Aggregates shared snapshot data for home and boards pages.
-     *
-     * @return community snapshot
-     */
     private CommunitySnapshot buildSnapshot() {
         LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
         LocalDateTime startOfToday = now.toLocalDate().atStartOfDay();
@@ -338,55 +241,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         );
     }
 
-    /**
-     * Reads a cached payload from Redis.
-     *
-     * @param key cache key
-     * @param targetType payload type
-     * @param <T> payload type
-     * @return cached payload or null
-     */
-    private <T> T readCachedPayload(String key, Class<T> targetType) {
-        try {
-            String cachedValue = stringRedisTemplate.opsForValue().get(key);
-            if (!StringUtils.hasText(cachedValue)) {
-                return null;
-            }
-            return objectMapper.readValue(cachedValue, targetType);
-        } catch (Exception exception) {
-            log.warn("Community cache read skipped for key {}", key, exception);
-            return null;
-        }
-    }
-
-    /**
-     * Writes a payload to Redis with a safe TTL floor.
-     *
-     * @param key cache key
-     * @param payload payload object
-     * @param ttlSeconds cache TTL in seconds
-     */
-    private void cachePayload(String key, Object payload, long ttlSeconds) {
-        try {
-            long safeTtlSeconds = Math.max(ttlSeconds, 60L);
-            stringRedisTemplate.opsForValue().set(
-                    key,
-                    objectMapper.writeValueAsString(payload),
-                    Duration.ofSeconds(safeTtlSeconds)
-            );
-        } catch (Exception exception) {
-            log.warn("Community cache write skipped for key {}", key, exception);
-        }
-    }
-
-    /**
-     * Creates a home-page metric card.
-     *
-     * @param title metric title
-     * @param value metric value
-     * @param description metric description
-     * @return metric card
-     */
     private HomePageVO.MetricCard createHomeMetricCard(String title, String value, String description) {
         HomePageVO.MetricCard metricCard = new HomePageVO.MetricCard();
         metricCard.setTitle(title);
@@ -395,14 +249,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return metricCard;
     }
 
-    /**
-     * Creates a boards-page metric card.
-     *
-     * @param title metric title
-     * @param value metric value
-     * @param description metric description
-     * @return metric card
-     */
     private BoardsPageVO.MetricCard createBoardsMetricCard(String title, String value, String description) {
         BoardsPageVO.MetricCard metricCard = new BoardsPageVO.MetricCard();
         metricCard.setTitle(title);
@@ -411,13 +257,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return metricCard;
     }
 
-    /**
-     * Creates a homepage quick section.
-     *
-     * @param title section title
-     * @param items section items
-     * @return quick section
-     */
     private HomePageVO.QuickSection createQuickSection(String title, List<HomePageVO.QuickLink> items) {
         HomePageVO.QuickSection quickSection = new HomePageVO.QuickSection();
         quickSection.setTitle(title);
@@ -425,13 +264,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return quickSection;
     }
 
-    /**
-     * Creates a homepage quick link.
-     *
-     * @param label link label
-     * @param link frontend route path
-     * @return quick link
-     */
     private HomePageVO.QuickLink createQuickLink(String label, String link) {
         HomePageVO.QuickLink quickLink = new HomePageVO.QuickLink();
         quickLink.setLabel(label);
@@ -439,32 +271,14 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return quickLink;
     }
 
-    /**
-     * Builds a board-detail route path.
-     *
-     * @param boardId board id
-     * @return route path
-     */
     private String buildBoardLink(Long boardId) {
         return boardId == null ? "/boards" : "/boards/" + boardId;
     }
 
-    /**
-     * Builds a post-detail route path.
-     *
-     * @param postId post id
-     * @return route path
-     */
     private String buildPostLink(Long postId) {
         return postId == null ? "/boards" : "/posts/" + postId;
     }
 
-    /**
-     * Formats counts and compresses large values for display.
-     *
-     * @param value raw count
-     * @return formatted text
-     */
     private String formatCount(long value) {
         if (value >= 10000L) {
             double formattedValue = value / 1000D;
@@ -473,12 +287,6 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return String.valueOf(value);
     }
 
-    /**
-     * Formats timestamps for dashboard cards and timelines.
-     *
-     * @param time source time
-     * @return formatted text
-     */
     private String formatRelativeDate(LocalDateTime time) {
         if (time == null) {
             return "暂无更新";
@@ -494,26 +302,10 @@ public class CommunityContentServiceImpl implements CommunityContentService {
         return DATE_FORMATTER.format(time);
     }
 
-    /**
-     * Converts nullable integer counters to safe long values.
-     *
-     * @param value nullable counter
-     * @return safe counter
-     */
     private long safeCount(Integer value) {
         return value == null ? 0L : value.longValue();
     }
 
-    /**
-     * Shared snapshot used by homepage and boards-page builders.
-     *
-     * @param totalUsers total registered users
-     * @param activeUsersLast7Days active users in the last seven days
-     * @param boardCount active board count
-     * @param publishedPosts total published posts
-     * @param todayPosts posts published today
-     * @param postsLast24Hours posts published in the last 24 hours
-     */
     private record CommunitySnapshot(long totalUsers,
                                      long activeUsersLast7Days,
                                      long boardCount,

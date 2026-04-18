@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.UserFollowMapper">
+
+    <!-- 查询指定关注者与被关注者的关注状态。 -->
+    <select id="selectStatus" resultType="int">
+        SELECT status
+        FROM user_follow
+        WHERE follower_id = #{followerId}
+          AND following_id = #{followingId}
+        LIMIT 1
+    </select>
+
+    <!-- 新增关注关系。 -->
+    <insert id="insert" parameterType="org.kiteseven.kiteuniverse.pojo.entity.UserFollow"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_follow (
+            follower_id, following_id, status
+        ) VALUES (
+            #{followerId}, #{followingId}, #{status}
+        )
+    </insert>
+
+    <!-- 激活已有关注关系。 -->
+    <update id="activate">
+        UPDATE user_follow
+        SET
+            status = 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE follower_id = #{followerId}
+          AND following_id = #{followingId}
+          AND status = 0
+    </update>
+
+    <!-- 取消已有关注关系。 -->
+    <update id="deactivate">
+        UPDATE user_follow
+        SET
+            status = 0,
+            update_time = CURRENT_TIMESTAMP
+        WHERE follower_id = #{followerId}
+          AND following_id = #{followingId}
+          AND status = 1
+    </update>
+
+    <!-- 统计粉丝数。 -->
+    <select id="countFollowers" resultType="int">
+        SELECT COUNT(1)
+        FROM user_follow
+        WHERE following_id = #{userId}
+          AND status = 1
+    </select>
+
+    <!-- 统计关注数。 -->
+    <select id="countFollowing" resultType="int">
+        SELECT COUNT(1)
+        FROM user_follow
+        WHERE follower_id = #{userId}
+          AND status = 1
+    </select>
+
+    <!-- 查询粉丝列表。 -->
+    <select id="selectFollowers" resultType="org.kiteseven.kiteuniverse.pojo.vo.user.UserFollowItemVO">
+        SELECT
+            u.id,
+            u.username,
+            COALESCE(NULLIF(u.nickname, ''), u.username) AS nickname,
+            u.avatar,
+            ui.signature
+        FROM user_follow f
+                 INNER JOIN user_account u ON u.id = f.follower_id
+                 LEFT JOIN user_info ui ON ui.user_id = u.id
+        WHERE f.following_id = #{userId}
+          AND f.status = 1
+        ORDER BY f.update_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询关注列表。 -->
+    <select id="selectFollowing" resultType="org.kiteseven.kiteuniverse.pojo.vo.user.UserFollowItemVO">
+        SELECT
+            u.id,
+            u.username,
+            COALESCE(NULLIF(u.nickname, ''), u.username) AS nickname,
+            u.avatar,
+            ui.signature
+        FROM user_follow f
+                 INNER JOIN user_account u ON u.id = f.following_id
+                 LEFT JOIN user_info ui ON ui.user_id = u.id
+        WHERE f.follower_id = #{userId}
+          AND f.status = 1
+        ORDER BY f.update_time DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

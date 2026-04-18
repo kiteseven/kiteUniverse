@@ -49,3 +49,48 @@ kite-universe:
     database: 0
     # 项目 Redis 键前缀。
     key-prefix: kite-universe
+    lock:
+      enabled: true
+      key-prefix: lock
+      wait-time-millis: 1500
+      lease-time-millis: 5000
+    bloom-filter:
+      enabled: true
+      user:
+        key: bloom-filter:user-ids
+        expected-insertions: 200000
+        false-probability: 0.001
+      post:
+        key: bloom-filter:post-ids
+        expected-insertions: 200000
+        false-probability: 0.001
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+  notification:
+    mq:
+      enabled: true
+      exchange: notification.command.exchange
+      queue: notification.command.queue
+      routing-key: notification.command
+      dead-letter-exchange: notification.command.dlx
+      dead-letter-queue: notification.command.dlq
+      dead-letter-routing-key: notification.command.dlq
+  content:
+    home-cache-seconds: 300
+    home-local-cache-seconds: 30
+    boards-cache-seconds: 300
+    boards-local-cache-seconds: 30
+  cache:
+    two-level:
+      enabled: true
+      default-local-ttl-seconds: 30
+      default-redis-ttl-seconds: 300
+      local-maximum-size: 1000
+      invalidation-topic: cache:two-level:invalidate
+  elasticsearch:
+    # Elasticsearch 连接地址（不带认证时用 http://）。
+    uris: http://localhost:9200

@@ -23,6 +23,7 @@ export interface AuthUserVO {
   phone: string;
   avatar: string | null;
   status: number;
+  role?: string;
 }
 
 export interface AuthResultVO {
@@ -52,6 +53,8 @@ export interface UserDetailVO {
   city: string | null;
   website: string | null;
   backgroundImage: string | null;
+  followerCount: number | null;
+  followingCount: number | null;
   createTime: string | null;
   updateTime: string | null;
 }
@@ -207,6 +210,7 @@ export interface PostSummaryData {
   boardName: string;
   boardSlug: string;
   boardTagName: string;
+  authorId: number | null;
   authorName: string;
   badge: string;
   title: string;
@@ -214,14 +218,20 @@ export interface PostSummaryData {
   viewCount: number;
   commentCount: number;
   favoriteCount: number;
+  likeCount: number;
   publishedAt: string | null;
+  isAiGenerated: boolean;
+  galleryImages: string | null;
+  pinned: boolean;
+  featured: boolean;
+  highlightTitle: string | null;
+  highlightSnippet: string | null;
 }
 
 /**
  * Post-detail payload returned by the post-detail API.
  */
 export interface PostDetailData extends PostSummaryData {
-  authorId: number | null;
   authorAvatar: string | null;
   content: string;
   createTime: string | null;
@@ -238,6 +248,10 @@ export interface PostCommentData {
   authorName: string;
   authorAvatar: string | null;
   content: string;
+  likeCount: number;
+  liked: boolean | null;
+  parentId: number | null;
+  replyToName: string | null;
   createTime: string | null;
 }
 
@@ -250,6 +264,8 @@ export interface PostCreatePayload {
   summary: string;
   content: string;
   badge: string | null;
+  isAiGenerated: boolean;
+  galleryImages: string | null;
 }
 
 /**
@@ -257,6 +273,7 @@ export interface PostCreatePayload {
  */
 export interface PostCommentCreatePayload {
   content: string;
+  parentId?: number | null;
 }
 
 /**
@@ -452,10 +469,10 @@ export function fetchManagePostDetail(token: string, postId: number | string) {
 }
 
 /**
- * Loads the comments under a specific post.
+ * Loads the comments under a specific post (optionally with liked state when token is provided).
  */
-export function fetchPostComments(postId: number | string) {
-  return requestApi<PostCommentData[]>(`/api/posts/${postId}/comments`, { method: 'GET' });
+export function fetchPostComments(postId: number | string, token = '') {
+  return requestApi<PostCommentData[]>(`/api/posts/${postId}/comments`, { method: 'GET' }, token);
 }
 
 /**
@@ -542,6 +559,690 @@ export function fetchCurrentUserFavoritePosts(token: string, limit = 10) {
 export function searchPosts(keyword: string, limit = 20) {
   const params = new URLSearchParams({ keyword, limit: String(limit) });
   return requestApi<PostSummaryData[]>(`/api/posts/search?${params}`, { method: 'GET' });
+}
+
+/**
+ * Current user's like state for a specific post.
+ */
+export interface PostLikeStateData {
+  postId: number;
+  liked: boolean;
+  likeCount: number;
+}
+
+/**
+ * Current user's like state for a specific comment.
+ */
+export interface CommentLikeStateData {
+  commentId: number;
+  liked: boolean;
+  likeCount: number;
+}
+
+/**
+ * Current user's follow state for a specific user.
+ */
+export interface UserFollowStateData {
+  userId: number;
+  followed: boolean;
+  followerCount: number;
+  followingCount: number;
+}
+
+/**
+ * Item displayed in follower/following lists.
+ */
+export interface UserFollowItemData {
+  id: number;
+  username: string;
+  nickname: string;
+  avatar: string | null;
+  signature: string | null;
+}
+
+/**
+ * Loads a public user profile by ID.
+ */
+export function fetchUserDetail(userId: number | string) {
+  return requestApi<UserDetailVO>(`/api/users/${userId}`, { method: 'GET' });
+}
+
+/**
+ * Loads the current user's like state for a post.
+ */
+export function fetchPostLikeState(token: string, postId: number | string) {
+  return requestApi<PostLikeStateData>(`/api/posts/${postId}/like-state`, { method: 'GET' }, token);
+}
+
+/**
+ * Likes a post for the current user.
+ */
+export function likeCommunityPost(token: string, postId: number | string) {
+  return requestApi<PostLikeStateData>(`/api/posts/${postId}/like`, { method: 'POST' }, token);
+}
+
+/**
+ * Removes a post like for the current user.
+ */
+export function unlikeCommunityPost(token: string, postId: number | string) {
+  return requestApi<PostLikeStateData>(`/api/posts/${postId}/like`, { method: 'DELETE' }, token);
+}
+
+/**
+ * Loads the current user's like state for a specific comment.
+ */
+export function fetchCommentLikeState(token: string, postId: number | string, commentId: number | string) {
+  return requestApi<CommentLikeStateData>(`/api/posts/${postId}/comments/${commentId}/like-state`, { method: 'GET' }, token);
+}
+
+/**
+ * Likes a comment for the current user.
+ */
+export function likeCommunityComment(token: string, postId: number | string, commentId: number | string) {
+  return requestApi<CommentLikeStateData>(`/api/posts/${postId}/comments/${commentId}/like`, { method: 'POST' }, token);
+}
+
+/**
+ * Removes a comment like for the current user.
+ */
+export function unlikeCommunityComment(token: string, postId: number | string, commentId: number | string) {
+  return requestApi<CommentLikeStateData>(`/api/posts/${postId}/comments/${commentId}/like`, { method: 'DELETE' }, token);
+}
+
+/**
+ * Loads the current user's follow state for a target user.
+ */
+export function fetchFollowState(token: string, userId: number | string) {
+  return requestApi<UserFollowStateData>(`/api/users/${userId}/follow-state`, { method: 'GET' }, token);
+}
+
+/**
+ * Follows a user.
+ */
+export function followUser(token: string, userId: number | string) {
+  return requestApi<UserFollowStateData>(`/api/users/${userId}/follow`, { method: 'POST' }, token);
+}
+
+/**
+ * Unfollows a user.
+ */
+export function unfollowUser(token: string, userId: number | string) {
+  return requestApi<UserFollowStateData>(`/api/users/${userId}/follow`, { method: 'DELETE' }, token);
+}
+
+/**
+ * Loads the followers of a user.
+ */
+export function fetchFollowers(userId: number | string, limit = 20) {
+  return requestApi<UserFollowItemData[]>(`/api/users/${userId}/followers?limit=${limit}`, { method: 'GET' });
+}
+
+/**
+ * Loads the users that a user is following.
+ */
+export function fetchFollowing(userId: number | string, limit = 20) {
+  return requestApi<UserFollowItemData[]>(`/api/users/${userId}/following?limit=${limit}`, { method: 'GET' });
+}
+
+/**
+ * Loads the public posts of a user by ID.
+ */
+export function fetchUserPosts(userId: number | string, limit = 10) {
+  return requestApi<PostSummaryData[]>(`/api/posts/user/${userId}?limit=${limit}`, { method: 'GET' });
+}
+
+/**
+ * A single notification item returned by the backend.
+ */
+export interface NotificationData {
+  id: number;
+  type: 'COMMENT' | 'POST_LIKE' | 'COMMENT_LIKE' | 'FOLLOW' | 'ANNOUNCEMENT';
+  senderId: number | null;
+  senderName: string | null;
+  senderAvatar: string | null;
+  postId: number | null;
+  postTitle: string | null;
+  commentId: number | null;
+  content: string;
+  isRead: boolean;
+  createTime: string | null;
+}
+
+/**
+ * Unread notification count returned by the backend.
+ */
+export interface UnreadCountData {
+  unreadCount: number;
+}
+
+/**
+ * Loads the current user's notification list.
+ */
+export function fetchNotifications(token: string, limit = 50) {
+  return requestApi<NotificationData[]>(`/api/notifications?limit=${limit}`, { method: 'GET' }, token);
+}
+
+/**
+ * Loads the current user's unread notification count.
+ */
+export function fetchUnreadCount(token: string) {
+  return requestApi<UnreadCountData>('/api/notifications/unread-count', { method: 'GET' }, token);
+}
+
+/**
+ * Marks all notifications as read for the current user.
+ */
+export function markAllNotificationsRead(token: string) {
+  return requestApi<null>('/api/notifications/read-all', { method: 'PUT' }, token);
+}
+
+/**
+ * Marks a single notification as read.
+ */
+export function markNotificationRead(token: string, notificationId: number) {
+  return requestApi<null>(`/api/notifications/${notificationId}/read`, { method: 'PUT' }, token);
+}
+
+/**
+ * Loads the latest posts under a specific board with sort and pagination.
+ */
+export function fetchPostsByBoardPaged(boardId: number | string, limit = 20, offset = 0, sort = 'latest') {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset), sort });
+  return requestApi<PostSummaryData[]>(`/api/posts/board/${boardId}/paged?${params}`, { method: 'GET' });
+}
+
+/**
+ * Counts total posts in a board (for pagination).
+ */
+export function countPostsByBoard(boardId: number | string, sort = 'latest') {
+  return requestApi<number>(`/api/posts/board/${boardId}/count?sort=${sort}`, { method: 'GET' });
+}
+
+/**
+ * Loads hot/trending posts within a time window.
+ */
+export function fetchHotPosts(limit = 10, days = 7) {
+  return requestApi<PostSummaryData[]>(`/api/posts/hot?limit=${limit}&days=${days}`, { method: 'GET' });
+}
+
+/**
+ * Loads posts by badge/topic tag with pagination.
+ */
+export function fetchPostsByBadge(badge: string, limit = 20, offset = 0) {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  return requestApi<PostSummaryData[]>(`/api/posts/badge/${encodeURIComponent(badge)}?${params}`, { method: 'GET' });
+}
+
+/**
+ * Loads personalized recommended posts for the current user.
+ */
+export function fetchRecommendedPosts(token: string, limit = 10) {
+  return requestApi<PostSummaryData[]>(`/api/posts/recommended?limit=${limit}`, { method: 'GET' }, token);
+}
+
+/**
+ * Uploads an image for a post and returns the public URL.
+ */
+export function uploadPostImage(token: string, file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return requestApi<{ url: string }>('/api/posts/images/upload', {
+    method: 'POST',
+    body: formData
+  }, token);
+}
+
+// ── Game Tool Types ─────────────────────────────────────────────────────────
+
+export interface GameAccountData {
+  id: number;
+  gameUid: string;
+  serverName: string;
+  inGameName: string;
+  accountLevel: number;
+  bindTime: string | null;
+  updateTime: string | null;
+}
+
+export interface GameCharacterData {
+  id: number;
+  classId: string;
+  className: string;
+  ascensionLevel: number;
+  actReached: number;
+  floorReached: number;
+  score: number;
+  keyRelic: string;
+  updateTime: string | null;
+}
+
+export interface GameStatsData {
+  id: number | null;
+  actionPoint: number;
+  maxActionPoint: number;
+  voidShards: number;
+  accountLevel: number;
+  totalRuns: number;
+  updateTime: string | null;
+}
+
+export interface GameAccountBindPayload {
+  gameUid: string;
+  serverName: string;
+  inGameName: string;
+  accountLevel: number;
+}
+
+export interface GameCharacterPayload {
+  classId: string;
+  className: string;
+  ascensionLevel: number;
+  actReached: number;
+  floorReached: number;
+  score: number;
+  keyRelic: string;
+}
+
+export interface GameStatsPayload {
+  actionPoint: number;
+  maxActionPoint: number;
+  voidShards: number;
+  accountLevel: number;
+  totalRuns: number;
+}
+
+export function fetchGameAccounts(token: string) {
+  return requestApi<GameAccountData[]>('/api/game/accounts', { method: 'GET' }, token);
+}
+
+export function bindGameAccount(token: string, payload: GameAccountBindPayload) {
+  return requestApi<GameAccountData>('/api/game/accounts', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }, token);
+}
+
+export function updateGameAccount(token: string, id: number, payload: GameAccountBindPayload) {
+  return requestApi<GameAccountData>(`/api/game/accounts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  }, token);
+}
+
+export function unbindGameAccount(token: string, id: number) {
+  return requestApi<null>(`/api/game/accounts/${id}`, { method: 'DELETE' }, token);
+}
+
+export function fetchGameCharacters(token: string) {
+  return requestApi<GameCharacterData[]>('/api/game/characters', { method: 'GET' }, token);
+}
+
+export function addGameCharacter(token: string, payload: GameCharacterPayload) {
+  return requestApi<GameCharacterData>('/api/game/characters', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }, token);
+}
+
+export function updateGameCharacter(token: string, id: number, payload: GameCharacterPayload) {
+  return requestApi<GameCharacterData>(`/api/game/characters/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  }, token);
+}
+
+export function deleteGameCharacter(token: string, id: number) {
+  return requestApi<null>(`/api/game/characters/${id}`, { method: 'DELETE' }, token);
+}
+
+export function fetchGameStats(token: string) {
+  return requestApi<GameStatsData | null>('/api/game/stats', { method: 'GET' }, token);
+}
+
+export function updateGameStats(token: string, payload: GameStatsPayload) {
+  return requestApi<GameStatsData>('/api/game/stats', {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  }, token);
+}
+
+// ── Check-in & Incentive ─────────────────────────────────────────────────────
+
+export interface UserBadgeData {
+  badgeType: string;
+  name: string;
+  description: string;
+  icon: string;
+  earnedAt: string | null;
+}
+
+export interface CheckInStatusData {
+  checkedInToday: boolean;
+  consecutiveDays: number;
+  points: number;
+  level: number;
+  levelName: string;
+  nextLevelPoints: number;
+}
+
+export interface CheckInResultData {
+  pointsEarned: number;
+  consecutiveDays: number;
+  totalPoints: number;
+  level: number;
+  levelName: string;
+  leveledUp: boolean;
+  newBadges: UserBadgeData[];
+}
+
+export function getCheckInStatus(token: string) {
+  return requestApi<CheckInStatusData>('/api/checkin/status', { method: 'GET' }, token);
+}
+
+export function doCheckIn(token: string) {
+  return requestApi<CheckInResultData>('/api/checkin', { method: 'POST' }, token);
+}
+
+export function getMyBadges(token: string) {
+  return requestApi<UserBadgeData[]>('/api/checkin/badges', { method: 'GET' }, token);
+}
+
+// ── Private Messages ─────────────────────────────────────────────────────────
+
+export interface MessageData {
+  id: number;
+  senderId: number;
+  senderName: string;
+  senderAvatar: string | null;
+  recipientId: number;
+  content: string;
+  read: boolean;
+  createTime: string;
+}
+
+export interface ConversationData {
+  otherUserId: number;
+  otherUserName: string;
+  otherUserAvatar: string | null;
+  lastMessageContent: string;
+  lastMessageByMe: boolean;
+  unreadCount: number;
+  lastMessageTime: string;
+}
+
+export function getConversations(token: string) {
+  return requestApi<ConversationData[]>('/api/messages/conversations', { method: 'GET' }, token);
+}
+
+export function getChatMessages(token: string, otherId: number, limit = 50, offset = 0) {
+  return requestApi<MessageData[]>(
+    `/api/messages/${otherId}?limit=${limit}&offset=${offset}`,
+    { method: 'GET' },
+    token
+  );
+}
+
+export function sendPrivateMessage(token: string, recipientId: number, content: string) {
+  return requestApi<MessageData>('/api/messages', {
+    method: 'POST',
+    body: JSON.stringify({ recipientId, content })
+  }, token);
+}
+
+export function markMessagesRead(token: string, senderId: number) {
+  return requestApi<null>(`/api/messages/${senderId}/read`, { method: 'PUT' }, token);
+}
+
+export function getUnreadMessageCount(token: string) {
+  return requestApi<{ count: number }>('/api/messages/unread-count', { method: 'GET' }, token);
+}
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+
+export interface AdminStatsData {
+  totalUsers: number;
+  newUsersToday: number;
+  activeUsersToday: number;
+  totalPosts: number;
+  newPostsToday: number;
+  totalComments: number;
+  pendingReports: number;
+  bannedUsers: number;
+}
+
+export interface AdminUserData {
+  id: number;
+  username: string;
+  nickname: string;
+  phone: string;
+  avatar: string | null;
+  status: number;
+  role: string;
+  muteUntil: string | null;
+  lastLoginTime: string | null;
+  createTime: string;
+}
+
+export interface AdminPostData {
+  id: number;
+  title: string;
+  authorName: string;
+  authorId: number;
+  boardName: string;
+  status: number;
+  pinned: boolean;
+  featured: boolean;
+  viewCount: number;
+  commentCount: number;
+  likeCount: number;
+  createTime: string;
+}
+
+export interface AdminCommentData {
+  id: number;
+  postId: number;
+  postTitle: string;
+  authorId: number;
+  authorName: string;
+  content: string;
+  status: number;
+  createTime: string;
+}
+
+export interface AdminReportData {
+  id: number;
+  reporterId: number;
+  reporterName: string;
+  targetType: string;
+  targetId: number;
+  reason: string;
+  description: string;
+  status: number;
+  handlerId: number | null;
+  handlerName: string | null;
+  handleNote: string;
+  createTime: string;
+  updateTime: string;
+}
+
+export interface AdminPageResult<T> {
+  items: T[];
+  total: number;
+}
+
+export function getAdminStats(token: string) {
+  return requestApi<AdminStatsData>('/api/admin/stats', { method: 'GET' }, token);
+}
+
+export function getAdminUsers(token: string, keyword = '', status: number | null = null, page = 0, limit = 20) {
+  const params = new URLSearchParams({ keyword, page: String(page), limit: String(limit) });
+  if (status !== null) params.set('status', String(status));
+  return requestApi<AdminPageResult<AdminUserData>>(`/api/admin/users?${params}`, { method: 'GET' }, token);
+}
+
+export function banUser(token: string, id: number) {
+  return requestApi<null>(`/api/admin/users/${id}/ban`, { method: 'PUT' }, token);
+}
+
+export function unbanUser(token: string, id: number) {
+  return requestApi<null>(`/api/admin/users/${id}/unban`, { method: 'PUT' }, token);
+}
+
+export function muteUser(token: string, id: number, minutes: number) {
+  return requestApi<null>(`/api/admin/users/${id}/mute`, {
+    method: 'PUT',
+    body: JSON.stringify({ minutes })
+  }, token);
+}
+
+export function changeUserRole(token: string, id: number, role: string) {
+  return requestApi<null>(`/api/admin/users/${id}/role`, {
+    method: 'PUT',
+    body: JSON.stringify({ role })
+  }, token);
+}
+
+export function getAdminPosts(token: string, keyword = '', status: number | null = null, page = 0, limit = 20) {
+  const params = new URLSearchParams({ keyword, page: String(page), limit: String(limit) });
+  if (status !== null) params.set('status', String(status));
+  return requestApi<AdminPageResult<AdminPostData>>(`/api/admin/posts?${params}`, { method: 'GET' }, token);
+}
+
+export function hidePost(token: string, id: number) {
+  return requestApi<null>(`/api/admin/posts/${id}/hide`, { method: 'PUT' }, token);
+}
+
+export function restorePost(token: string, id: number) {
+  return requestApi<null>(`/api/admin/posts/${id}/restore`, { method: 'PUT' }, token);
+}
+
+export function adminDeletePost(token: string, id: number) {
+  return requestApi<null>(`/api/admin/posts/${id}`, { method: 'DELETE' }, token);
+}
+
+export function pinPost(token: string, id: number) {
+  return requestApi<null>(`/api/admin/posts/${id}/pin`, { method: 'PUT' }, token);
+}
+
+export function unpinPost(token: string, id: number) {
+  return requestApi<null>(`/api/admin/posts/${id}/unpin`, { method: 'PUT' }, token);
+}
+
+export function featurePost(token: string, id: number) {
+  return requestApi<null>(`/api/admin/posts/${id}/feature`, { method: 'PUT' }, token);
+}
+
+export function unfeaturePost(token: string, id: number) {
+  return requestApi<null>(`/api/admin/posts/${id}/unfeature`, { method: 'PUT' }, token);
+}
+
+export function getAdminComments(token: string, keyword = '', page = 0, limit = 20) {
+  const params = new URLSearchParams({ keyword, page: String(page), limit: String(limit) });
+  return requestApi<AdminPageResult<AdminCommentData>>(`/api/admin/comments?${params}`, { method: 'GET' }, token);
+}
+
+export function adminDeleteComment(token: string, id: number) {
+  return requestApi<null>(`/api/admin/comments/${id}`, { method: 'DELETE' }, token);
+}
+
+export function getAdminReports(token: string, status: number | null = null, page = 0, limit = 20) {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (status !== null) params.set('status', String(status));
+  return requestApi<AdminPageResult<AdminReportData>>(`/api/admin/reports?${params}`, { method: 'GET' }, token);
+}
+
+export function handleReport(token: string, id: number, action: string, note = '') {
+  return requestApi<null>(`/api/admin/reports/${id}/handle`, {
+    method: 'PUT',
+    body: JSON.stringify({ action, note })
+  }, token);
+}
+
+export function submitReport(token: string, targetType: string, targetId: number, reason: string, description = '') {
+  return requestApi<null>('/api/reports', {
+    method: 'POST',
+    body: JSON.stringify({ targetType, targetId, reason, description })
+  }, token);
+}
+
+// ───────────────────────── AI 辅助功能 ─────────────────────────
+
+export interface AiPostSummaryResult {
+  postId: number | null;
+  summary: string;
+}
+
+export interface AiBadgeSuggestResult {
+  badges: string[];
+  reason: string;
+}
+
+export interface AiGrowthReportResult {
+  userId: number;
+  levelName: string;
+  points: number;
+  report: string;
+}
+
+export function generateAiPostSummary(title: string, content: string) {
+  return requestApi<AiPostSummaryResult>('/api/ai/post-summary', {
+    method: 'POST',
+    body: JSON.stringify({ title, content })
+  });
+}
+
+export function suggestAiBadges(title: string, content: string) {
+  return requestApi<AiBadgeSuggestResult>('/api/ai/badge-suggest', {
+    method: 'POST',
+    body: JSON.stringify({ title, content })
+  });
+}
+
+export function generateAiGrowthReport(token: string) {
+  return requestApi<AiGrowthReportResult>('/api/ai/growth-report', { method: 'POST' }, token);
+}
+
+// ── ES Search Enhancements ────────────────────────────────────────────────────
+
+/**
+ * A single hot keyword entry from the search stats dashboard.
+ */
+export interface TermCountData {
+  term: string;
+  count: number;
+}
+
+/**
+ * Search statistics returned by the /search-stats endpoint.
+ */
+export interface SearchStatsData {
+  hotKeywords: TermCountData[];
+  totalSearches: number;
+  zeroResultSearches: number;
+  zeroResultRate: number;
+}
+
+/**
+ * Fetches autocomplete suggestions based on a title prefix.
+ */
+export function fetchSearchSuggestions(prefix: string, limit = 8) {
+  const params = new URLSearchParams({ prefix, limit: String(limit) });
+  return requestApi<string[]>(`/api/posts/suggest?${params}`, { method: 'GET' });
+}
+
+/**
+ * Fetches related posts for a given post using more_like_this.
+ */
+export function fetchRelatedPosts(postId: number | string, limit = 5) {
+  return requestApi<PostSummaryData[]>(`/api/posts/${postId}/related?limit=${limit}`, { method: 'GET' });
+}
+
+/**
+ * Fetches search statistics (hot keywords + zero-result rate).
+ */
+export function fetchSearchStats(topN = 10) {
+  return requestApi<SearchStatsData>(`/api/posts/search-stats?topN=${topN}`, { method: 'GET' });
 }
 
 /**

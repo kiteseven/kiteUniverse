@@ -5,10 +5,14 @@ import org.kiteseven.kiteuniverse.common.result.Result;
 import org.kiteseven.kiteuniverse.pojo.dto.user.UserInfoUpdateDTO;
 import org.kiteseven.kiteuniverse.pojo.dto.user.UserRegisterDTO;
 import org.kiteseven.kiteuniverse.pojo.vo.user.UserDetailVO;
+import org.kiteseven.kiteuniverse.pojo.vo.user.UserFollowItemVO;
+import org.kiteseven.kiteuniverse.pojo.vo.user.UserFollowStateVO;
 import org.kiteseven.kiteuniverse.service.FileStorageService;
+import org.kiteseven.kiteuniverse.service.UserFollowService;
 import org.kiteseven.kiteuniverse.service.UserService;
 import org.kiteseven.kiteuniverse.support.auth.UserTokenService;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 /**
  * Exposes user profile endpoints for both public detail views and the personal center.
  */
@@ -27,13 +33,16 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController {
 
     private final UserService userService;
+    private final UserFollowService userFollowService;
     private final UserTokenService userTokenService;
     private final FileStorageService fileStorageService;
 
     public UserController(UserService userService,
+                          UserFollowService userFollowService,
                           UserTokenService userTokenService,
                           FileStorageService fileStorageService) {
         this.userService = userService;
+        this.userFollowService = userFollowService;
         this.userTokenService = userTokenService;
         this.fileStorageService = fileStorageService;
     }
@@ -114,6 +123,71 @@ public class UserController {
         String avatarPath = fileStorageService.storeAvatar(file, userId);
         userService.updateUserAvatar(userId, avatarPath);
         return Result.success(userService.getUserDetail(userId));
+    }
+
+    /**
+     * 查询当前用户对指定用户的关注状态。
+     *
+     * @param request 当前请求
+     * @param userId 目标用户编号
+     * @return 关注状态
+     */
+    @GetMapping("/{userId}/follow-state")
+    public Result<UserFollowStateVO> getFollowState(HttpServletRequest request, @PathVariable Long userId) {
+        Long currentUserId = resolveCurrentUserId(request);
+        return Result.success(userFollowService.getFollowState(currentUserId, userId));
+    }
+
+    /**
+     * 关注用户。
+     *
+     * @param request 当前请求
+     * @param userId 目标用户编号
+     * @return 关注状态
+     */
+    @PostMapping("/{userId}/follow")
+    public Result<UserFollowStateVO> followUser(HttpServletRequest request, @PathVariable Long userId) {
+        Long currentUserId = resolveCurrentUserId(request);
+        return Result.success(userFollowService.followUser(currentUserId, userId));
+    }
+
+    /**
+     * 取消关注用户。
+     *
+     * @param request 当前请求
+     * @param userId 目标用户编号
+     * @return 关注状态
+     */
+    @DeleteMapping("/{userId}/follow")
+    public Result<UserFollowStateVO> unfollowUser(HttpServletRequest request, @PathVariable Long userId) {
+        Long currentUserId = resolveCurrentUserId(request);
+        return Result.success(userFollowService.unfollowUser(currentUserId, userId));
+    }
+
+    /**
+     * 查询粉丝列表。
+     *
+     * @param userId 用户编号
+     * @param limit 查询条数
+     * @return 粉丝列表
+     */
+    @GetMapping("/{userId}/followers")
+    public Result<List<UserFollowItemVO>> listFollowers(@PathVariable Long userId,
+                                                         @RequestParam(defaultValue = "20") int limit) {
+        return Result.success(userFollowService.listFollowers(userId, limit));
+    }
+
+    /**
+     * 查询关注列表。
+     *
+     * @param userId 用户编号
+     * @param limit 查询条数
+     * @return 关注列表
+     */
+    @GetMapping("/{userId}/following")
+    public Result<List<UserFollowItemVO>> listFollowing(@PathVariable Long userId,
+                                                         @RequestParam(defaultValue = "20") int limit) {
+        return Result.success(userFollowService.listFollowing(userId, limit));
     }
 
     /**

@@ -74,6 +74,21 @@ public class CommunityPost extends BaseEntity {
     private Integer favoriteCount;
 
     /**
+     * 点赞数。
+     */
+    private Integer likeCount;
+
+    /**
+     * 是否包含 AI 生成内容，1 表示是。
+     */
+    private Integer isAiGenerated;
+
+    /**
+     * 图集图片 URL 列表，JSON 数组字符串，空帖为 null。
+     */
+    private String galleryImages;
+
+    /**
      * 发布时间。
      */
     private LocalDateTime publishedAt;
@@ -172,6 +187,30 @@ public class CommunityPost extends BaseEntity {
 
     public void setFavoriteCount(Integer favoriteCount) {
         this.favoriteCount = favoriteCount;
+    }
+
+    public Integer getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(Integer likeCount) {
+        this.likeCount = likeCount;
+    }
+
+    public Integer getIsAiGenerated() {
+        return isAiGenerated;
+    }
+
+    public void setIsAiGenerated(Integer isAiGenerated) {
+        this.isAiGenerated = isAiGenerated;
+    }
+
+    public String getGalleryImages() {
+        return galleryImages;
+    }
+
+    public void setGalleryImages(String galleryImages) {
+        this.galleryImages = galleryImages;
     }
 
     public LocalDateTime getPublishedAt() {

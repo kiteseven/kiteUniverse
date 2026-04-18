@@ -76,6 +76,50 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     /**
+     * Persists the uploaded post image and returns the public access path.
+     *
+     * @param file uploaded image
+     * @param userId current authenticated user id
+     * @return public image path
+     */
+    @Override
+    public String storePostImage(MultipartFile file, Long userId) {
+        if (userId == null) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "用户编号不能为空");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "请先选择图片");
+        }
+
+        String fileExtension = resolveAllowedExtension(file.getOriginalFilename());
+        Path uploadRoot = fileStorageProperties.resolveUploadRoot();
+        Path imageDirectory = uploadRoot.resolve("images").normalize();
+
+        if (!imageDirectory.startsWith(uploadRoot)) {
+            throw new BusinessException(ResultCode.SYSTEM_ERROR, "图片目录配置无效");
+        }
+
+        String fileName = "post-" + userId + "-" + System.currentTimeMillis()
+                + "-" + UUID.randomUUID().toString().substring(0, 8) + fileExtension;
+        Path targetPath = imageDirectory.resolve(fileName).normalize();
+
+        if (!targetPath.startsWith(uploadRoot)) {
+            throw new BusinessException(ResultCode.SYSTEM_ERROR, "图片保存路径无效");
+        }
+
+        try {
+            Files.createDirectories(imageDirectory);
+            try (InputStream inputStream = file.getInputStream()) {
+                Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException exception) {
+            throw new BusinessException(ResultCode.SYSTEM_ERROR, "图片上传失败，请稍后重试");
+        }
+
+        return fileStorageProperties.resolvePublicUrl("images/" + fileName);
+    }
+
+    /**
      * Validates the uploaded filename and returns its file extension.
      *
      * @param originalFilename raw client filename

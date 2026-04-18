@@ -1,20 +1,36 @@
 import {
+  countPostsByBoard,
   fetchBoardDetail,
-  fetchPostsByBoard,
+  fetchPostsByBoardPaged,
   type BoardSummaryData,
   type PostSummaryData
 } from '../services/api';
 
+type SortMode = 'latest' | 'hot' | 'featured';
+
+const SORT_LABELS: Record<SortMode, string> = {
+  latest: '最新',
+  hot: '最热',
+  featured: '精华'
+};
+
+const PAGE_SIZE = 20;
+
 /**
- * Board-detail page backed by the real board and post APIs.
+ * Board-detail page with sort tabs and load-more pagination.
  */
 export const BoardDetailPage = {
   data() {
     return {
       loading: true,
+      loadingMore: false,
       errorMessage: '',
       board: null as BoardSummaryData | null,
-      posts: [] as PostSummaryData[]
+      posts: [] as PostSummaryData[],
+      sort: 'latest' as SortMode,
+      offset: 0,
+      totalCount: 0,
+      hasMore: false
     };
   },
   watch: {
@@ -25,9 +41,14 @@ export const BoardDetailPage = {
       }
     }
   },
+  computed: {
+    sortOptions(): SortMode[] {
+      return ['latest', 'hot', 'featured'];
+    }
+  },
   methods: {
     /**
-     * Loads the board summary and its latest posts together.
+     * Loads the board summary and the first page of posts.
      */
     async loadBoardPage(this: any) {
       const boardId = this.resolveBoardId();
@@ -39,18 +60,60 @@ export const BoardDetailPage = {
 
       this.loading = true;
       this.errorMessage = '';
+      this.offset = 0;
+      this.posts = [];
 
       try {
-        const [board, posts] = await Promise.all([
+        const [board, posts, total] = await Promise.all([
           fetchBoardDetail(boardId),
-          fetchPostsByBoard(boardId, 20)
+          fetchPostsByBoardPaged(boardId, PAGE_SIZE, 0, this.sort),
+          countPostsByBoard(boardId, this.sort)
         ]);
         this.board = board;
         this.posts = posts;
+        this.totalCount = Number(total) || 0;
+        this.offset = posts.length;
+        this.hasMore = posts.length === PAGE_SIZE && this.offset < this.totalCount;
       } catch (error) {
         this.errorMessage = error instanceof Error ? error.message : '版区内容加载失败，请稍后重试。';
       } finally {
         this.loading = false;
+      }
+    },
+
+    /**
+     * Changes the sort mode and reloads posts from the beginning.
+     */
+    async changeSort(this: any, sort: SortMode) {
+      if (this.sort === sort && !this.loading) {
+        return;
+      }
+      this.sort = sort;
+      await this.loadBoardPage();
+    },
+
+    /**
+     * Appends the next page of posts.
+     */
+    async loadMore(this: any) {
+      if (this.loadingMore || !this.hasMore) {
+        return;
+      }
+      const boardId = this.resolveBoardId();
+      if (!boardId) {
+        return;
+      }
+
+      this.loadingMore = true;
+      try {
+        const morePosts = await fetchPostsByBoardPaged(boardId, PAGE_SIZE, this.offset, this.sort);
+        this.posts = [...this.posts, ...morePosts];
+        this.offset += morePosts.length;
+        this.hasMore = morePosts.length === PAGE_SIZE && this.offset < this.totalCount;
+      } catch (error) {
+        this.errorMessage = error instanceof Error ? error.message : '加载更多内容失败，请稍后重试。';
+      } finally {
+        this.loadingMore = false;
       }
     },
 
@@ -60,6 +123,20 @@ export const BoardDetailPage = {
     resolveBoardId(this: any) {
       const rawBoardId = Number(this.$route.params.boardId);
       return Number.isFinite(rawBoardId) && rawBoardId > 0 ? rawBoardId : 0;
+    },
+
+    /**
+     * Returns the display label for a sort mode.
+     */
+    getSortLabel(this: any, sort: SortMode) {
+      return SORT_LABELS[sort] || sort;
+    },
+
+    /**
+     * Navigates to the topic/badge page.
+     */
+    goToBadge(this: any, badge: string) {
+      this.$router.push('/topics/' + encodeURIComponent(badge));
     },
 
     /**
@@ -130,6 +207,7 @@ export const BoardDetailPage = {
                 发布帖子
               </router-link>
               <router-link class="button button--ghost" to="/boards">返回版区</router-link>
+              <router-link class="button button--ghost" to="/discover">发现热门</router-link>
             </div>
           </div>
 
@@ -158,14 +236,28 @@ export const BoardDetailPage = {
               <div class="panel__header">
                 <div>
                   <span class="panel__kicker">版区动态</span>
-                  <h2>最新帖子</h2>
+                  <h2>帖子列表</h2>
                 </div>
-                <span class="panel__link">{{ posts.length }} 篇内容</span>
+                <span class="panel__link">共 {{ totalCount }} 篇</span>
+              </div>
+
+              <!-- Sort tabs -->
+              <div class="sort-tabs">
+                <button
+                  v-for="s in sortOptions"
+                  :key="s"
+                  type="button"
+                  class="sort-tab"
+                  :class="{ 'sort-tab--active': sort === s }"
+                  @click="changeSort(s)"
+                >
+                  {{ getSortLabel(s) }}
+                </button>
               </div>
 
               <div v-if="!posts.length" class="empty-state">
-                <h3>这个版区还没有帖子</h3>
-                <p>先开一个话题，把这片版区慢慢聊热起来。</p>
+                <h3>这个版区还没有{{ sort === 'featured' ? '精华' : '' }}帖子</h3>
+                <p>{{ sort === 'featured' ? '暂时没有被推荐为精华的帖子。' : '先开一个话题，把这片版区慢慢聊热起来。' }}</p>
               </div>
 
               <div v-else class="post-stack">
@@ -176,20 +268,42 @@ export const BoardDetailPage = {
                   class="post-summary-card"
                 >
                   <div class="post-summary-card__head">
-                    <span class="capsule">{{ post.badge || post.boardTagName }}</span>
+                    <span
+                      class="capsule capsule--clickable"
+                      @click.prevent.stop="goToBadge(post.badge || post.boardTagName)"
+                    >{{ post.badge || post.boardTagName }}</span>
+                    <span v-if="post.pinned" class="post-badge post-badge--pinned">置顶</span>
+                    <span v-if="post.featured" class="post-badge post-badge--featured">精华</span>
+                    <span v-if="post.isAiGenerated" class="ai-badge ai-badge--inline">AI</span>
                     <span class="topic-card__meta">{{ formatTime(post.publishedAt) }}</span>
                   </div>
                   <h3>{{ post.title }}</h3>
                   <p>{{ post.summary }}</p>
                   <div class="post-summary-card__foot">
-                    <span class="topic-card__author">{{ post.authorName }}</span>
+                    <span class="topic-card__author"><a v-if="post.authorId" href="javascript:void(0)" @click.prevent.stop="$router.push('/users/' + post.authorId)">{{ post.authorName }}</a><template v-else>{{ post.authorName }}</template></span>
                     <div class="topic-card__stats">
-                      <span class="topic-stat">浏览 {{ formatCount(post.viewCount) }}</span>
-                      <span class="topic-stat">评论 {{ formatCount(post.commentCount) }}</span>
-                      <span class="topic-stat">收藏 {{ formatCount(post.favoriteCount) }}</span>
+                      <span class="topic-stat icon-eye">浏览 {{ formatCount(post.viewCount) }}</span>
+                      <span class="topic-stat icon-comment">评论 {{ formatCount(post.commentCount) }}</span>
+                      <span class="topic-stat icon-bookmark">收藏 {{ formatCount(post.favoriteCount) }}</span>
+                      <span class="topic-stat icon-heart">点赞 {{ formatCount(post.likeCount) }}</span>
                     </div>
                   </div>
                 </router-link>
+              </div>
+
+              <!-- Load more -->
+              <div v-if="hasMore || loadingMore" class="load-more-area">
+                <button
+                  class="button button--ghost load-more-btn"
+                  type="button"
+                  :disabled="loadingMore"
+                  @click="loadMore"
+                >
+                  {{ loadingMore ? '加载中...' : '加载更多' }}
+                </button>
+              </div>
+              <div v-else-if="posts.length > 0 && !hasMore" class="load-more-area load-more-area--end">
+                <span>已显示全部 {{ totalCount }} 篇帖子</span>
               </div>
             </section>
           </div>

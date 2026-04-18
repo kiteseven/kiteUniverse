@@ -16,6 +16,8 @@
         <result column="gender" property="gender"/>
         <result column="status" property="status"/>
         <result column="last_login_time" property="lastLoginTime"/>
+        <result column="role" property="role"/>
+        <result column="mute_until" property="muteUntil"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
@@ -23,7 +25,7 @@
     <!-- Shared column list used by account queries. -->
     <sql id="BaseColumns">
         id, username, password, nickname, email, phone, avatar, gender, status,
-        last_login_time, create_time, update_time
+        last_login_time, role, mute_until, create_time, update_time
     </sql>
 
     <!-- Loads an account by user id. -->
@@ -73,6 +75,19 @@
         FROM user_account
         WHERE last_login_time IS NOT NULL
           AND last_login_time &gt;= #{lastLoginSince}
+    </select>
+
+    <!-- Loads all user accounts for announcement broadcast. -->
+    <select id="selectAll" resultMap="UserResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM user_account
+        ORDER BY id
+    </select>
+
+    <select id="selectAllIds" resultType="long">
+        SELECT id
+        FROM user_account
+        ORDER BY id
     </select>
 
     <!-- Inserts a new account record. -->

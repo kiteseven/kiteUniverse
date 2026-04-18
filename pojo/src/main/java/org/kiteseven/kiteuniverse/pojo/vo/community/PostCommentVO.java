@@ -38,6 +38,26 @@ public class PostCommentVO {
     private String content;
 
     /**
+     * 点赞数。
+     */
+    private Integer likeCount;
+
+    /**
+     * 当前用户是否已点赞。
+     */
+    private Boolean liked;
+
+    /**
+     * 父评论编号（null 表示顶层评论）。
+     */
+    private Long parentId;
+
+    /**
+     * 被回复用户名称（二级回复时展示）。
+     */
+    private String replyToName;
+
+    /**
      * 评论创建时间。
      */
     private LocalDateTime createTime;
@@ -88,6 +108,38 @@ public class PostCommentVO {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public Integer getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(Integer likeCount) {
+        this.likeCount = likeCount;
+    }
+
+    public Boolean getLiked() {
+        return liked;
+    }
+
+    public void setLiked(Boolean liked) {
+        this.liked = liked;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
+    }
+
+    public String getReplyToName() {
+        return replyToName;
+    }
+
+    public void setReplyToName(String replyToName) {
+        this.replyToName = replyToName;
     }
 
     public LocalDateTime getCreateTime() {

@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- V3 logo: closer to the provided chibi reference, with red eyes and a sticker-like anime silhouette. -->
+  <defs>
+    <radialGradient id="ku3-bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 242) rotate(90) scale(190)">
+      <stop offset="0" stop-color="#FFFFFF" />
+      <stop offset="0.62" stop-color="#EEF5FF" />
+      <stop offset="1" stop-color="#D8E8FF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ku3-hair" x1="176" y1="112" x2="332" y2="288" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" />
+      <stop offset="0.66" stop-color="#F6F7FF" />
+      <stop offset="1" stop-color="#E3E7FF" />
+    </linearGradient>
+    <linearGradient id="ku3-blue" x1="170" y1="222" x2="340" y2="390" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A9B8FF" />
+      <stop offset="0.48" stop-color="#6A7CFF" />
+      <stop offset="1" stop-color="#3248D8" />
+    </linearGradient>
+    <linearGradient id="ku3-coat" x1="214" y1="326" x2="296" y2="410" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7F8693" />
+      <stop offset="1" stop-color="#444955" />
+    </linearGradient>
+    <filter id="ku3-shadow" x="62" y="52" width="388" height="404" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#2B598D" flood-opacity="0.16" />
+    </filter>
+  </defs>
+
+  <ellipse cx="256" cy="246" rx="176" ry="182" fill="url(#ku3-bg)" />
+
+  <g filter="url(#ku3-shadow)" stroke="#161A24" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Outer hair silhouette and lower blue tails. -->
+    <path d="M156 250C126 270 114 312 120 370C124 408 150 420 184 400C194 360 196 320 188 280L156 250Z" fill="url(#ku3-blue)" />
+    <path d="M356 250C386 270 398 312 392 370C388 408 362 420 328 400C318 360 316 320 324 280L356 250Z" fill="url(#ku3-blue)" />
+    <path d="M176 152C198 118 232 100 276 102C330 104 370 136 370 190C370 228 356 258 334 282C314 304 288 316 256 316C224 316 198 304 178 282C156 258 142 226 142 190C142 176 154 162 176 152Z" fill="url(#ku3-hair)" />
+
+    <!-- Small body for the chibi proportion. -->
+    <path d="M220 308C230 298 242 292 256 292C270 292 282 298 292 308L300 382H212L220 308Z" fill="url(#ku3-coat)" />
+    <path d="M232 298H280L290 320L256 338L222 320L232 298Z" fill="#232834" />
+    <path d="M236 290H276V306H236V290Z" fill="#2F83F8" />
+    <path d="M206 330L178 346L190 382L224 370L226 340L206 330Z" fill="#5A67E0" />
+    <path d="M306 330L334 346L322 382L288 370L286 340L306 330Z" fill="#5A67E0" />
+    <rect x="242" y="382" width="10" height="54" rx="5" fill="#161A22" />
+    <rect x="260" y="382" width="10" height="54" rx="5" fill="#161A22" />
+    <circle cx="216" cy="364" r="16" fill="#FFF5F5" />
+    <circle cx="296" cy="364" r="16" fill="#FFF5F5" />
+  </g>
+
+  <!-- Face and front hair details. -->
+  <g stroke="#161A24" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="256" cy="222" rx="94" ry="86" fill="#FFF6F7" />
+    <path d="M252 112C238 82 266 72 286 88C300 100 300 120 282 132" fill="#E8ECFF" />
+    <path d="M192 132C214 108 246 96 282 100C314 104 338 120 352 148C332 140 310 138 288 138C300 154 300 176 292 194C280 182 268 176 256 176C244 176 230 182 214 196C208 174 208 152 216 138C208 136 200 134 192 132Z" fill="#FFFFFF" />
+    <path d="M180 184C162 204 160 238 176 268C194 252 206 228 208 200C208 194 206 186 202 178L180 184Z" fill="url(#ku3-blue)" />
+    <path d="M332 184C350 204 352 238 336 268C318 252 306 228 304 200C304 194 306 186 310 178L332 184Z" fill="url(#ku3-blue)" />
+    <path d="M174 206C154 194 136 196 126 212C144 212 160 220 172 232" fill="#FFFFFF" />
+    <path d="M338 206C358 194 376 196 386 212C368 212 352 220 340 232" fill="#FFFFFF" />
+    <path d="M196 154C206 146 220 142 238 142C224 170 222 206 228 238C204 228 188 204 188 178C188 168 190 160 196 154Z" fill="#FFFFFF" />
+    <path d="M278 140C306 140 326 154 334 176C338 190 336 214 322 232C304 218 294 194 294 162C294 154 288 146 278 140Z" fill="#FFFFFF" />
+    <path d="M256 154L246 168L256 178L266 168L256 154Z" fill="#221F2A" />
+  </g>
+
+  <!-- Bangs, clips, highlights, and eyes. -->
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M214 140C194 154 184 184 184 224C184 260 196 286 218 300C226 270 228 224 226 160L214 140Z" fill="url(#ku3-hair)" stroke="#161A24" stroke-width="8" />
+    <path d="M290 140C316 150 330 176 330 214C330 248 318 278 296 296C286 270 284 234 286 176L290 140Z" fill="url(#ku3-blue)" stroke="#161A24" stroke-width="8" />
+    <path d="M228 206C236 196 248 194 258 202" stroke="#161A24" stroke-width="9" />
+    <path d="M272 202C282 194 294 196 302 206" stroke="#161A24" stroke-width="9" />
+    <ellipse cx="222" cy="236" rx="26" ry="30" fill="#FF2626" stroke="#6A0909" stroke-width="7" />
+    <ellipse cx="290" cy="236" rx="26" ry="30" fill="#FF2020" stroke="#6A0909" stroke-width="7" />
+    <circle cx="230" cy="226" r="5" fill="#FFFFFF" />
+    <circle cx="298" cy="226" r="5" fill="#FFFFFF" />
+    <path d="M244 250C250 246 262 246 268 250" stroke="#E6B1B6" stroke-width="4" />
+    <path d="M244 270C250 278 262 278 268 270" stroke="#F4A2AF" stroke-width="5" />
+    <ellipse cx="194" cy="250" rx="15" ry="11" fill="#FFC9D8" fill-opacity="0.5" />
+    <ellipse cx="318" cy="250" rx="15" ry="11" fill="#FFC9D8" fill-opacity="0.5" />
+    <path d="M196 198H164C160 198 156 202 156 206V214C156 218 160 222 164 222H196C200 222 204 218 204 214V206C204 202 200 198 196 198Z" fill="#B9C8E7" stroke="#161A24" stroke-width="8" />
+    <path d="M316 192L334 206L320 224L302 210L316 192Z" fill="#AAB8D9" stroke="#161A24" stroke-width="8" />
+    <path d="M304 206H332" stroke="#161A24" stroke-width="8" />
+    <path d="M318 192V220" stroke="#161A24" stroke-width="8" />
+    <path d="M278 184C286 176 298 176 306 184C300 190 294 194 286 194C280 194 276 192 272 188L278 184Z" fill="#7C3442" stroke="#7C3442" stroke-width="5" />
+    <path d="M270 150L284 138L302 146L288 160L270 150Z" fill="#EEF0FF" stroke="#EEF0FF" stroke-width="4" />
+    <path d="M210 156L226 146L240 154L228 166L210 156Z" fill="#EEF0FF" stroke="#EEF0FF" stroke-width="4" />
+  </g>
+</svg>

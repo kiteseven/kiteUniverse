@@ -1,4 +1,4 @@
-import { searchPosts, type PostSummaryData } from '../services/api';
+import { fetchSearchStats, searchPosts, type PostSummaryData, type SearchStatsData } from '../services/api';
 
 /**
  * Search results page — queries posts by keyword from the URL query string.
@@ -9,7 +9,8 @@ export const SearchPage = {
       loading: false,
       errorMessage: '',
       keyword: '',
-      posts: [] as PostSummaryData[]
+      posts: [] as PostSummaryData[],
+      stats: null as SearchStatsData | null
     };
   },
   watch: {
@@ -68,10 +69,22 @@ export const SearchPage = {
       const safeValue = Number(value || 0);
       if (safeValue >= 10000) return `${(safeValue / 1000).toFixed(1)}k`;
       return String(safeValue);
+    },
+
+    /**
+     * Loads search statistics for the dashboard panel.
+     */
+    async loadStats(this: any) {
+      try {
+        this.stats = await fetchSearchStats(10);
+      } catch {
+        this.stats = null;
+      }
     }
   },
   mounted(this: any) {
     void this.loadSearchResults();
+    void this.loadStats();
   },
   template: `
     <main class="page-shell detail-shell">
@@ -139,14 +152,16 @@ export const SearchPage = {
                   <span class="capsule">{{ post.badge || post.boardTagName }}</span>
                   <span class="topic-card__meta">{{ formatTime(post.publishedAt) }}</span>
                 </div>
-                <h3>{{ post.title }}</h3>
-                <p>{{ post.summary }}</p>
+                <h3 v-if="post.highlightTitle" v-html="post.highlightTitle"></h3>
+                <h3 v-else>{{ post.title }}</h3>
+                <p v-if="post.highlightSnippet" v-html="post.highlightSnippet"></p>
+                <p v-else>{{ post.summary }}</p>
                 <div class="post-summary-card__foot">
                   <span class="topic-card__author">{{ post.authorName }}</span>
                   <div class="topic-card__stats">
-                    <span class="topic-stat">浏览 {{ formatCount(post.viewCount) }}</span>
-                    <span class="topic-stat">评论 {{ formatCount(post.commentCount) }}</span>
-                    <span class="topic-stat">收藏 {{ formatCount(post.favoriteCount) }}</span>
+                    <span class="topic-stat icon-eye">浏览 {{ formatCount(post.viewCount) }}</span>
+                    <span class="topic-stat icon-comment">评论 {{ formatCount(post.commentCount) }}</span>
+                    <span class="topic-stat icon-bookmark">收藏 {{ formatCount(post.favoriteCount) }}</span>
                   </div>
                 </div>
               </router-link>
@@ -163,9 +178,45 @@ export const SearchPage = {
               </div>
             </div>
             <div class="notice-list">
-              <p>搜索会匹配帖子的标题、摘要和分类标签。</p>
-              <p>搜索结果按最新发布时间排列，置顶帖子优先展示。</p>
+              <p>搜索使用 Elasticsearch 全文检索，支持中文分词，匹配帖子标题、正文和分类标签。</p>
+              <p>搜索结果按相关度排序，匹配关键字将以高亮形式展示。</p>
               <p>每次最多返回 20 条匹配结果。</p>
+            </div>
+          </section>
+
+          <section v-if="stats" class="panel soft-panel">
+            <div class="panel__header">
+              <div>
+                <span class="panel__kicker">运营看板</span>
+                <h2>搜索统计</h2>
+              </div>
+            </div>
+            <div class="search-stats">
+              <div class="search-stats__row">
+                <span class="search-stats__label">总搜索次数</span>
+                <strong class="search-stats__val">{{ stats.totalSearches }}</strong>
+              </div>
+              <div class="search-stats__row">
+                <span class="search-stats__label">无结果次数</span>
+                <strong class="search-stats__val">{{ stats.zeroResultSearches }}</strong>
+              </div>
+              <div class="search-stats__row">
+                <span class="search-stats__label">无结果率</span>
+                <strong class="search-stats__val" :class="stats.zeroResultRate > 30 ? 'search-stats__val--warn' : ''">
+                  {{ stats.zeroResultRate }}%
+                </strong>
+              </div>
+              <div v-if="stats.hotKeywords && stats.hotKeywords.length" class="search-stats__hot">
+                <p class="search-stats__hot-label">热门搜索词</p>
+                <div class="search-stats__tags">
+                  <span
+                    v-for="item in stats.hotKeywords"
+                    :key="item.term"
+                    class="search-stats__tag"
+                    @click="$router.push({ path: '/search', query: { keyword: item.term } })"
+                  >{{ item.term }} <small>{{ item.count }}</small></span>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -176,9 +227,15 @@ export const SearchPage = {
                 <h2>其他入口</h2>
               </div>
             </div>
-            <div class="notice-list">
-              <router-link to="/boards">浏览全部版区</router-link>
-              <router-link to="/">回到首页看精选</router-link>
+            <div class="notice-list" style="gap:10px;">
+              <router-link class="sidebar-link-card" to="/boards">
+                <strong>浏览全部版区</strong>
+                <span>按主题分类找到你感兴趣的内容</span>
+              </router-link>
+              <router-link class="sidebar-link-card" to="/">
+                <strong>回到首页看精选</strong>
+                <span>社区编辑推荐的热门话题和攻略</span>
+              </router-link>
             </div>
           </section>
         </aside>

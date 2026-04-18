@@ -2,6 +2,7 @@ package org.kiteseven.kiteuniverse.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.kiteseven.kiteuniverse.pojo.dto.community.PostIndexDTO;
 import org.kiteseven.kiteuniverse.pojo.entity.CommunityPost;
 import org.kiteseven.kiteuniverse.pojo.vo.community.PostDetailVO;
 import org.kiteseven.kiteuniverse.pojo.vo.community.PostSummaryVO;
@@ -52,6 +53,13 @@ public interface CommunityPostMapper {
      * @return 帖子详情
      */
     PostDetailVO selectDetailById(@Param("id") Long id);
+
+    /**
+     * Returns all published post ids for Bloom filter warm-up.
+     *
+     * @return published post ids
+     */
+    List<Long> selectAllPublishedIds();
 
     /**
      * 查询首页精选帖子。
@@ -154,6 +162,22 @@ public interface CommunityPostMapper {
     int decrementFavoriteCount(@Param("id") Long id);
 
     /**
+     * 增加帖子点赞数。
+     *
+     * @param id 帖子编号
+     * @return 影响行数
+     */
+    int incrementLikeCount(@Param("id") Long id);
+
+    /**
+     * 减少帖子点赞数。
+     *
+     * @param id 帖子编号
+     * @return 影响行数
+     */
+    int decrementLikeCount(@Param("id") Long id);
+
+    /**
      * 按关键字搜索帖子（匹配标题、摘要、徽标）。
      *
      * @param keyword 搜索关键字
@@ -171,4 +195,64 @@ public interface CommunityPostMapper {
      */
     List<PostSummaryVO> selectHotPosts(@Param("publishedSince") java.time.LocalDateTime publishedSince,
                                        @Param("limit") int limit);
+
+    /**
+     * 查询指定版块帖子（支持排序和分页偏移）。
+     *
+     * @param boardId 版块编号
+     * @param sort    排序方式：latest / hot / featured
+     * @param limit   查询条数
+     * @param offset  查询偏移量
+     * @return 帖子概要列表
+     */
+    List<PostSummaryVO> selectPostsByBoardIdPaged(@Param("boardId") Long boardId,
+                                                  @Param("sort") String sort,
+                                                  @Param("limit") int limit,
+                                                  @Param("offset") int offset);
+
+    /**
+     * 按徽标查询帖子列表（支持分页）。
+     *
+     * @param badge  徽标文案
+     * @param limit  查询条数
+     * @param offset 查询偏移量
+     * @return 帖子概要列表
+     */
+    List<PostSummaryVO> selectPostsByBadge(@Param("badge") String badge,
+                                           @Param("limit") int limit,
+                                           @Param("offset") int offset);
+
+    /**
+     * 查询个性化推荐帖子（来自用户活跃版块的热门帖子）。
+     *
+     * @param userId 用户编号
+     * @param limit  查询条数
+     * @return 帖子概要列表
+     */
+    List<PostSummaryVO> selectRecommendedPosts(@Param("userId") Long userId,
+                                               @Param("limit") int limit);
+
+    /**
+     * 统计指定版块在当前排序条件下的帖子总数。
+     *
+     * @param boardId 版块编号
+     * @param sort    排序/筛选方式
+     * @return 帖子总数
+     */
+    long countPostsByBoardId(@Param("boardId") Long boardId, @Param("sort") String sort);
+
+    /**
+     * 查询所有已发布帖子（含正文），供 Elasticsearch 全量索引使用。
+     *
+     * @return 所有状态为 1 的帖子概要列表（含 content）
+     */
+    List<PostIndexDTO> selectAllForIndex();
+
+    /**
+     * 按编号查询单条帖子索引数据（含正文）。
+     *
+     * @param id 帖子编号
+     * @return 帖子索引对象，不存在时返回 null
+     */
+    PostIndexDTO selectForIndexById(@Param("id") Long id);
 }

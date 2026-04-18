@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kiteseven.kiteuniverse.mapper.UserPointsMapper">
+
+    <resultMap id="UserPointsResultMap" type="org.kiteseven.kiteuniverse.pojo.entity.UserPoints">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="points" property="points"/>
+        <result column="level" property="level"/>
+        <result column="total_points_earned" property="totalPointsEarned"/>
+        <result column="consecutive_days" property="consecutiveDays"/>
+        <result column="last_check_in_date" property="lastCheckInDate"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectByUserId" resultMap="UserPointsResultMap">
+        SELECT * FROM user_points WHERE user_id = #{userId}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_points (user_id, points, level, total_points_earned, consecutive_days, last_check_in_date)
+        VALUES (#{userId}, #{points}, #{level}, #{totalPointsEarned}, #{consecutiveDays}, #{lastCheckInDate})
+    </insert>
+
+    <update id="update">
+        UPDATE user_points
+        SET points              = #{points},
+            level               = #{level},
+            total_points_earned = #{totalPointsEarned},
+            consecutive_days    = #{consecutiveDays},
+            last_check_in_date  = #{lastCheckInDate},
+            update_time         = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+</mapper>
